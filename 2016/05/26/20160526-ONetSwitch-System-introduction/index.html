@@ -5,7 +5,7 @@
   
 
 
-<html class="theme-next pisces use-motion" lang="">
+<html class="theme-next mist use-motion" lang="">
 <head>
   <meta charset="UTF-8"/>
 <meta http-equiv="X-UA-Compatible" content="IE=edge" />
@@ -78,7 +78,7 @@
 <link href="/css/main.css?v=5.1.2" rel="stylesheet" type="text/css" />
 
 
-  <meta name="keywords" content="Networking,ONetSwitch,SDN,linux," />
+  <meta name="keywords" content="Networking,SDN,linux,ONetSwitch," />
 
 
 
@@ -87,7 +87,7 @@
 
 
 
-  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.1.2" />
+  <link rel="shortcut icon" type="image/x-icon" href="/avatar.jpg?v=5.1.2" />
 
 
 
@@ -95,10 +95,10 @@
 
 
 <meta name="description" content="写在前面ONetSwitch是我们实验室自主设计研发的，基于Xilinx Zynq器件的SDN交换机。ONetSwitch具有从硬件逻辑到软件控制全可编程的特点，因此这是一个非常理想的SDN科研平台。目前也确实有不少科研团队在使用，主要包括我们实验室。 正是由于ONetSwitch在软硬件方面都提供了非常灵活的可编程性，ONetSwitch交换机整套系统的使用就变得非常复杂：硬件层面的可编程性要求">
-<meta name="keywords" content="Networking,ONetSwitch,SDN,linux">
+<meta name="keywords" content="Networking,SDN,linux,ONetSwitch">
 <meta property="og:type" content="article">
 <meta property="og:title" content="ONetSwitch-软件系统介绍">
-<meta property="og:url" content="http://zeepen.com/2016/05/26/20160526-ONetSwitch-System-introduction/index.html">
+<meta property="og:url" content="http://zeepen.com/about/2016/05/26/20160526-ONetSwitch-System-introduction/index.html">
 <meta property="og:site_name" content="Peng Zheng">
 <meta property="og:description" content="写在前面ONetSwitch是我们实验室自主设计研发的，基于Xilinx Zynq器件的SDN交换机。ONetSwitch具有从硬件逻辑到软件控制全可编程的特点，因此这是一个非常理想的SDN科研平台。目前也确实有不少科研团队在使用，主要包括我们实验室。 正是由于ONetSwitch在软硬件方面都提供了非常灵活的可编程性，ONetSwitch交换机整套系统的使用就变得非常复杂：硬件层面的可编程性要求">
 <meta property="og:locale" content="default">
@@ -116,7 +116,7 @@
   var NexT = window.NexT || {};
   var CONFIG = {
     root: '/',
-    scheme: 'Pisces',
+    scheme: 'Mist',
     sidebar: {"position":"left","display":"hide","offset":12,"offset_float":12,"b2t":false,"scrollpercent":"ture","onmobile":false},
     fancybox: true,
     tabs: true,
@@ -137,7 +137,7 @@
 
 
 
-  <link rel="canonical" href="http://zeepen.com/2016/05/26/20160526-ONetSwitch-System-introduction/"/>
+  <link rel="canonical" href="http://zeepen.com/about/2016/05/26/20160526-ONetSwitch-System-introduction/"/>
 
 
 
@@ -224,32 +224,12 @@
         </li>
       
         
-        <li class="menu-item menu-item-categories">
-          <a href="/categories/" rel="section">
-            
-              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
-            
-            Categories
-          </a>
-        </li>
-      
-        
         <li class="menu-item menu-item-archives">
           <a href="/archives/" rel="section">
             
               <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
             
             Archives
-          </a>
-        </li>
-      
-        
-        <li class="menu-item menu-item-tags">
-          <a href="/tags/" rel="section">
-            
-              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
-            
-            Tags
           </a>
         </li>
       
@@ -296,7 +276,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://zeepen.com/2016/05/26/20160526-ONetSwitch-System-introduction/">
+    <link itemprop="mainEntityOfPage" href="http://zeepen.com/about/2016/05/26/20160526-ONetSwitch-System-introduction/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="Peng Zheng">
@@ -441,11 +421,11 @@
           
             <a href="/tags/Networking/" rel="tag"># Networking</a>
           
-            <a href="/tags/ONetSwitch/" rel="tag"># ONetSwitch</a>
-          
             <a href="/tags/SDN/" rel="tag"># SDN</a>
           
             <a href="/tags/linux/" rel="tag"># linux</a>
+          
+            <a href="/tags/ONetSwitch/" rel="tag"># ONetSwitch</a>
           
         </div>
       
@@ -547,7 +527,7 @@
           
             <div class="site-state-item site-state-posts">
               <a href="/archives/">
-                <span class="site-state-item-count">13</span>
+                <span class="site-state-item-count">12</span>
                 <span class="site-state-item-name">posts</span>
               </a>
             </div>
@@ -558,7 +538,7 @@
             
             <div class="site-state-item site-state-categories">
               <a href="/categories/index.html">
-                <span class="site-state-item-count">7</span>
+                <span class="site-state-item-count">6</span>
                 <span class="site-state-item-name">categories</span>
               </a>
             </div>
@@ -569,7 +549,7 @@
             
             <div class="site-state-item site-state-tags">
               <a href="/tags/index.html">
-                <span class="site-state-item-count">27</span>
+                <span class="site-state-item-count">24</span>
                 <span class="site-state-item-name">tags</span>
               </a>
             </div>
@@ -589,17 +569,6 @@
                   
                     
                       Linkedin
-                    
-                </a>
-              </span>
-            
-              <span class="links-of-author-item">
-                <a href="www.zeepen.com" target="_blank" title="Site">
-                  
-                    <i class="fa fa-fw fa-globe"></i>
-                  
-                    
-                      Site
                     
                 </a>
               </span>
@@ -672,7 +641,7 @@
       <div class="footer-inner">
         <div class="copyright" >
   
-  &copy; 
+  &copy;  2015 - 
   <span itemprop="copyrightYear">2018</span>
   <span class="with-love">
     <i class="fa fa-heart"></i>
@@ -688,7 +657,7 @@
 <div class="theme-info">
   Theme -
   <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
-    NexT.Pisces
+    NexT.Mist
   </a>
 </div>
 
@@ -789,13 +758,6 @@
 
   
   
-
-
-  <script type="text/javascript" src="/js/src/affix.js?v=5.1.2"></script>
-
-  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.2"></script>
-
-
 
   
   <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.2"></script>
