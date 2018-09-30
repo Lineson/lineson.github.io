@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.2" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="Networking,SDN,Google,DCN," />
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.1.2" />
+
+
+
+
+
+
+<meta name="description" content="目录 1. 主要内容2015年，Google在SIGCOMM会议上发表论文《Jupiter Rising: A Decade of Clos Topologies and Centralized Control in Google’s Datacenter Network》，比较详细的阐述了Google在过去十多年中数据中心网络的创新和演进。 本文主要基于该论文对Google数据中心网络技术的发展">
+<meta name="keywords" content="Networking,SDN,Google,DCN">
+<meta property="og:type" content="article">
+<meta property="og:title" content="解密Google数据中心网络的进化">
+<meta property="og:url" content="http://zeepen.com/2015/12/31/20151231-dive-into-google-data-center-networks/index.html">
+<meta property="og:site_name" content="Peng Zheng">
+<meta property="og:description" content="目录 1. 主要内容2015年，Google在SIGCOMM会议上发表论文《Jupiter Rising: A Decade of Clos Topologies and Centralized Control in Google’s Datacenter Network》，比较详细的阐述了Google在过去十多年中数据中心网络的创新和演进。 本文主要基于该论文对Google数据中心网络技术的发展">
+<meta property="og:locale" content="default">
+<meta property="og:image" content="http://zeepen.com/images/google-dcn/01_2004-google-dc-network.png">
+<meta property="og:image" content="http://zeepen.com/images/google-dcn/02_08-14-google-dnc-traffic.png">
+<meta property="og:image" content="http://zeepen.com/images/google-dcn/T01_Google-five-generation-dcn.png">
+<meta property="og:image" content="http://zeepen.com/images/google-dcn/03_Firehose1.0.png">
+<meta property="og:image" content="http://zeepen.com/images/google-dcn/04_Firehose1.1.png">
+<meta property="og:image" content="http://zeepen.com/images/google-dcn/05_FH1.1-Bag-on-the-side.png">
+<meta property="og:image" content="http://zeepen.com/images/google-dcn/T02_Benefits-of-cable-bundling-in-Watchtower.png">
+<meta property="og:image" content="http://zeepen.com/images/google-dcn/06_Watchtower.png">
+<meta property="og:image" content="http://zeepen.com/images/google-dcn/07_Reducing-deployment-complexity-by-bundling-cables.png">
+<meta property="og:image" content="http://zeepen.com/images/google-dcn/08_saturn.png">
+<meta property="og:image" content="http://zeepen.com/images/google-dcn/09_Jupiter.png">
+<meta property="og:image" content="http://zeepen.com/images/google-dcn/10_Middle-Block.png">
+<meta property="og:image" content="http://zeepen.com/images/google-dcn/11_Four-options-to-connect-to%20the-external-network.png">
+<meta property="og:image" content="http://zeepen.com/images/google-dcn/12_Two-stage-fabrics-inter-cluster.png">
+<meta property="og:image" content="http://zeepen.com/images/google-dcn/13_Firepath-component-interactions.png">
+<meta property="og:image" content="http://zeepen.com/images/google-dcn/14_Google-Firepath-Route-protocol.png">
+<meta property="og:updated_time" content="2017-03-12T06:59:16.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="解密Google数据中心网络的进化">
+<meta name="twitter:description" content="目录 1. 主要内容2015年，Google在SIGCOMM会议上发表论文《Jupiter Rising: A Decade of Clos Topologies and Centralized Control in Google’s Datacenter Network》，比较详细的阐述了Google在过去十多年中数据中心网络的创新和演进。 本文主要基于该论文对Google数据中心网络技术的发展">
+<meta name="twitter:image" content="http://zeepen.com/images/google-dcn/01_2004-google-dc-network.png">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    sidebar: {"position":"left","display":"hide","offset":12,"offset_float":12,"b2t":false,"scrollpercent":"ture","onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://zeepen.com/2015/12/31/20151231-dive-into-google-data-center-networks/"/>
+
+
+
+
+
+  <title>解密Google数据中心网络的进化 | Peng Zheng</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="default">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Peng Zheng</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">靡不有初 鲜克有终</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br />
+            
+            About
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            Categories
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            Archives
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            Tags
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-friends">
+          <a href="/friends/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-bookmark"></i> <br />
+            
+            menu.friends
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://zeepen.com/2015/12/31/20151231-dive-into-google-data-center-networks/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Peng Zheng">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Peng Zheng">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">解密Google数据中心网络的进化</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2015-12-31T20:45:10-05:00">
+                2015-12-31
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Network/" itemprop="url" rel="index">
+                    <span itemprop="name">Network</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+            <span class="post-meta-divider">|</span>
+            <span class="page-pv"><i class="fa fa-file-o"></i>
+            <span class="busuanzi-value" id="busuanzi_value_page_pv" ></span>
+            </span>
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="目录"><a href="#目录" class="headerlink" title="目录"></a>目录</h2><!-- toc -->
+<h2 id="1-主要内容"><a href="#1-主要内容" class="headerlink" title="1. 主要内容"></a>1. 主要内容</h2><p>2015年，Google在SIGCOMM会议上发表论文《Jupiter Rising: A Decade of Clos Topologies and Centralized Control in Google’s Datacenter Network》，比较详细的阐述了Google在过去十多年中数据中心网络的创新和演进。</p>
+<p>本文主要基于该论文对Google数据中心网络技术的发展进行分析和总结，同时给出个人理解和看法。Google的论文的主要思想如下：论文提出了Google为了克服高昂的成本、操作的复杂性、有限的规模可扩展性问题，而实施的解决方案；阐述了Google十年间逐渐发展的五代数据中心网络。主要包含三个方面的主题。</p>
+<p>第一，利用多级互连的Clos拓扑网络技术，使得Google可以通过商业交换芯片来搭建大规模的交换网络系统。第二，传统网络中大量通用的，分布式的，非常复杂的网络路由和管理协议虽然可以支持任意的部署方式，但是这对于需要单一操作平面的数据中心网络却矫枉过正了。Google建立了中心化控制的，支持全局配置的数据中心网络。第三，模块化的硬件设计加上简单的、高可靠性的软件使得Google可以设计出同时支持数据中心内部集群间路由和外部广域网路由的系统。</p>
+<p>Google的第五代数据中心网络Jupiter已经在全球几十个站点运行部署，网络带宽已经达到1Pbps，这比十年前提高了十多倍。Jupiter足够10万台服务器每台之间以10Gb/s交换信息，可以在十分之一秒之内读取所有美国国会图书馆的扫描数据。</p>
+<a id="more"></a>
+<h2 id="2-Google创新网络技术的动机"><a href="#2-Google创新网络技术的动机" class="headerlink" title="2. Google创新网络技术的动机"></a>2. Google创新网络技术的动机</h2><p>从宏观上来说，引用[3]下面这段阐述：众所周知，计算、存储、网络是构成数据中心的三大要素。而在此前的技术进展中，计算和存储已经遭遇瓶颈，主要体现在：计算方面，随着半导体技术面临的物理障碍不可逾越，摩尔定律失效的时限日益临近，因此单个计算节点的性能提升有限，从而必须依赖于分布式计算技术，而分布式集群中节点间的网络将成为影响集群工作效率的关键；存储方面，支持管理机制和存储空间分离的分布式存储技术已经解决了存储容量的问题，但是存储I/O仍是瓶颈（高性能的Flash当前仍旧停留在缓存的范畴），因此存储性能的改进也非常依赖于网络能力的增强。因此，网络已经成为了提升大规模数据中心运行性能的关键点，是维持数据中心资源效率平衡的关键。</p>
+<p>另外，就Google的实际发展来说，在2004年，谷歌应该早已认识到对于数据中心网络的创新是势在必行的。我觉得主要的一个原因就是网络设备成本太高；尤其是在数据中心流量不断爆炸的年代，传统网络设备的成本已经成为难以承受之轻，这导致谷歌不得不想办法革了传统网络的命。下面会具体的来分析一下。</p>
+<h3 id="2-1-传统的Google-数据中心内部网络架构"><a href="#2-1-传统的Google-数据中心内部网络架构" class="headerlink" title="2.1 传统的Google 数据中心内部网络架构"></a>2.1 传统的Google 数据中心内部网络架构</h3><p>Google 的网络分为数据中心内部网络（IDC Network）及骨干网（Backbone Network，也可以称为WAN网）。其中WAN网按照流量方向由两张骨干网构成，分别为：第一，数据中心之间互联的网络（Inter-DC WAN，即G-scale Network），用来连接Google位于世界各地之间的数据中心，属于内部网络；第二，面向Internet用户访问的网络（Internet- facing WAN，即I-Scale Network）。</p>
+<p>在2004年，Google数据中心内部网络的结构如图下所示。可以看到网络系统主要有两层，图的上半部分是由4个巨大的集群路由器Cluster Router1-Cluster Router4组成的骨干层；每个集群路由器之间通过2x10G的链路连接成一个环。此外，每个集群交换机还有512个1G的口，分别与网络中的512个高性能机架式交换机ToR（Top of Rack）相连，如图的下半部分。每个高性能机架式交换机ToR通过40x1G的端口连接40台服务器。由此，也可以很容易的计算出网络的总带宽为512x4=2T。</p>
+<p>这时的谷歌数据中心网络中用的全是传统设备厂商的交换设备。据说当时谷歌的采购每次去Cisco或者Juniper家买设备的时候都是直接说：把你们家最好的设备拿给我，只要最好的！而这种最好的交换设备，一台就需要几百万甚至上千万美元。而就图1这个网络中就需要多个这样的设备，可以想象数据中心的成本是非常惊人的。</p>
+<p><img src="/images/google-dcn/01_2004-google-dc-network.png" alt="图1 2004年谷歌数据中心网络结构" title="图1 2004年谷歌数据中心网络结构"></p>
+<h3 id="2-2-传统DCN网络成本感人"><a href="#2-2-传统DCN网络成本感人" class="headerlink" title="2.2 传统DCN网络成本感人"></a>2.2 传统DCN网络成本感人</h3><p>我们再来数据中心网络对流量的需求增长。由于数据中心网络对于web服务器、存储系统的实现至关重要，也是实现云计算的关键因素。数据中心网络的带宽需求逐年上升，基本上每12-15个月就会增加一倍。Google的带宽需求如图2所示。在2008年到2014年的短短6年间，谷歌的数据中心网络流量就增加了50多倍。</p>
+<p>按照上面的分析，2004年，通过购买传统厂商的设备建设2T带宽的网络就已经需要惊人的开支，那如果要满足实际需求中带宽几十倍的增长，必然是要花费天文数字的美刀啊（每年至少得好几十亿美元啊）。所以说，谷歌显然是想尽可能摆脱传统网络设备厂商这个深坑的。</p>
+<p>除了网络设备方面的成本高，分布式的，以盒子为中心的传统网络的管理成本也非常高。这一点是也是让全世界的网络管理的工程师们都非常抓狂的事情。</p>
+<p><img src="/images/google-dcn/02_08-14-google-dnc-traffic.png" alt="图2 Google数据中心服务器总流量增长图" title="图2 Google数据中心服务器总流量增长图"></p>
+<h3 id="2-3-DCN网络创新的契机"><a href="#2-3-DCN网络创新的契机" class="headerlink" title="2.3 DCN网络创新的契机"></a>2.3 DCN网络创新的契机</h3><p>上一小节从成本角度分析了谷歌进行数据中心网络创新的充足动机，这是内部原因。另一方面，由于技术的不断发展，新的技术也给谷歌创新自己数据中心网络的提供了可能。主要来说得益于有以下三方面的技术。</p>
+<p>第一， Clos网络技术。利用多级互连的Clos拓扑网络技术，使得Google可以通过低端口数量的商业交换芯片，来搭建支持大规模的交换网络系统。这种拓扑结构也使得网络既有很好扩展性。</p>
+<p>第二， 商业交换芯片，谷歌使用通用目的交换芯片来构建转发设备。传统的交换芯片是装在盒子里，功能丰富但是容量小，而且价格昂贵。而通用的交换芯片不仅成本更低，而且方便扩展，还可以随着芯片技术的进步而不断升级，灵活的满足逐年增长的带宽需求。</p>
+<p>第三， 中心化的控制和管理。得益于数据中心网络具有单一管理域的特点，因为数据中心网络的拓扑结构是相对稳定的，管理上可以根据交换机的位置设置相应的转发角色。这就使得中心化的控制与管理变得非常方便。</p>
+<p>由此，Google利用强大的软件开发能力，基于Clos网络拓扑和商用交换芯片成功研发了满足自家高带宽需求的网络转发设备，从开始的10T带宽达到1.3P的总带宽，再加上自己设计的统一控制层面，彻底了数据中心网络对传统设备厂商的一代。</p>
+<h2 id="3-Google数据中心网络技术"><a href="#3-Google数据中心网络技术" class="headerlink" title="3. Google数据中心网络技术"></a>3. Google数据中心网络技术</h2><p>如下表所示，在2005年以前，Google还是需要依赖设备厂商提供的产品建设其数据中心网络。但是随着厂商设备不能满足Google数据中心高速发展的需求，Google在2005年开始自主研发，迄今已经演进了五代。</p>
+<p>2005年，Google设计了第一代数据中心网络，名为Firehose 1.0，总带宽达到10T。作为原型系统，主要用来验证实现的可行性，没有实际部署到真实网络中去，但是也为Google积累了大量的经验。2006年，对第一代系统改进后，第二代Fierhose 1.1推出并真正部署在了Google数据中心的网络中，采用与传统的厂商设备网络混合的方式运行。</p>
+<p>直到2008年，第三代Watchtower出现，利用更先进的16x10G的交换芯片，总的带宽达到82T，并逐步全面替代厂商设备。在第四代Saturn中，更强的交换下芯片使得总带宽达到207T，网络中计算节点接入首次达到10G级别，网络内部传统厂商设备至此已经被完全取代。2012年，Google第五代数据中心网络Jupiter，也是Google最新的一代的数据中心网络，引入了SDN技术并且使用了OpenFlow，网络带宽高达1.3P，这已经大大满足了Google高深增长的带宽需求</p>
+<p><img src="/images/google-dcn/T01_Google-five-generation-dcn.png" alt="表1 Google五代数据中心网络" title="表1 Google五代数据中心网络"></p>
+<h3 id="3-1-第一代Firehose1-0"><a href="#3-1-第一代Firehose1-0" class="headerlink" title="3.1 第一代Firehose1.0"></a>3.1 第一代Firehose1.0</h3><p>从网上的资料看到，从2004年开始Google内部成立了一个小组开始研究自己的网络设备解决方案。这个方案简而言之就是用普通的民用级芯片搭建通用的硬件，然后在上面跑任何需要运行的软件。思科为不同级别的需求提供不同的硬件，并每套硬件上面都运行特定的相匹配的软件。而Google的解决方案则简单粗暴的多，所有的硬件都是相同的，面对不同的需求时解决方案的差别仅在于一起协作的硬件的数量，一个“高性能架顶式”交换机就相当于一个“集群交换机”上的一块板，性能的提升几乎等同于数量的叠加，而这些相同的硬件都可以运行任何需要运行的软件。</p>
+<p><img src="/images/google-dcn/03_Firehose1.0.png" alt="图3 Firehose1.0拓扑" title="图3 Firehose1.0拓扑"></p>
+<p>2015年Google推出第一代网络架构Firehose1.0（FH1.0）。FH1.0的设计目标是给10K台服务器分别提供1Gpbs的无阻塞交换带宽。网络拓扑如图3所示。网络一共分为五层。第一层是高性能架顶式交换机（Top-of-Rack，ToR），ToR交换机的上方是2×10G，下方是24×1G。第二、三、四层交换机上方和下方均是4×10G接口。第五层交换机只有下方有8×10G接口。交换机板是插在服务器上的。</p>
+<p>第二层和第三层构的各8台交换机构成一个聚集块（Aggregation Block），每个聚集块接入16个ToR。由于每个ToR下方连接20台服务器，因此一个聚集块可以连接320台服务器。</p>
+<p>第四层的8台交换机和第五层的4台交换机构成一个骨干块（Spine Block）。每个骨干块有32×10G个接口，分别连接到32个汇聚块的32个上方端口。这样就构成了整个FH1.0的拓扑。因此系统的带宽可以达到32×4×8×10G=10T的带宽。</p>
+<p>该网络的缺点就是ToR交换机的基数比较低，这就会导致在链路失效时出现难以解决的问题。虽然没正式投入使用，但是这给Google后续发展提供了丰富的经验。</p>
+<h3 id="3-2-第二代Firehose1-1"><a href="#3-2-第二代Firehose1-1" class="headerlink" title="3.2 第二代Firehose1.1"></a>3.2 第二代Firehose1.1</h3><p>2006年，Google实现了第二代的数据中心网络架构Fierhose 1.1。Fierhose 1.1是真正部署在了Google数据中心的网络中的Clos拓扑网络，如图4所示。</p>
+<p>这是在第一代的基础上主要改进了高性能架顶式ToR交换机。没有把交换板挂在主机上，二是使用了定制化的兼容PCI插槽接口的硬件来实现。骨干块（Spine Block）和FH1.0是完全相同的，聚集块和ToR交换机有所改变，如图4所示。使用两个4x10G+24x1G交换芯片东西方向通过2x10G互连。总带宽依然是10T。</p>
+<p><img src="/images/google-dcn/04_Firehose1.1.png" alt="图4 Firehose1.1" title="图4 Firehose1.1"></p>
+<p>部署FH1.1的主要问题担忧就在于该网络是一个全新的，从未被实际检验过的网络。因此，为了稳妥起见，Firehose 1.1还是采用了与传统的厂商设备网络并肩运行的方式，如图5所示。</p>
+<p><img src="/images/google-dcn/05_FH1.1-Bag-on-the-side.png" alt="图5 FH1.1的实际部署方式（Bag-on-the-side）" title="图5 FH1.1的实际部署方式（Bag-on-the-side）"></p>
+<h3 id="3-3-第三代Watchtower"><a href="#3-3-第三代Watchtower" class="headerlink" title="3.3 第三代Watchtower"></a>3.3 第三代Watchtower</h3><p>FH1.1的实际部署取得的非常积极的效果，这证明了数据中心网络的服务可以通过这种全新的拓扑连接方式享受更高的带宽，同时单位带宽的成本也比传统网络低。FH1.1唯一的缺点就是部署的时候需要额外的铜质光缆。<br>利用前面两次的经验，Google在2008年设计推出了第三代架构Watchtower。这一代最关键的一点就是利用当时最新一代的16x10G商业交换晶片来构建交换机。</p>
+<p>如图6所示，左上方是一个128x10G端口的Watchover底盘，内部通过8个线卡连接成无阻塞的拓扑结构（左下方所示）。四个底盘放在两个支架上，通过光纤与其他部分相连。系统最高可以达到82T的带宽。</p>
+<p>为了降低部署的复杂度，Google把光纤捆绑成束，如图7所示。通过捆绑光纤，系统获得多方面的好处，列举如下表所示。</p>
+<p><img src="/images/google-dcn/T02_Benefits-of-cable-bundling-in-Watchtower.png" alt="表2 捆绑光纤的好处" title="表2 捆绑光纤的好处"></p>
+<p><img src="/images/google-dcn/06_Watchtower.png" alt="图6 第三代Whtchover" title="图6 第三代Whtchover"></p>
+<p><img src="/images/google-dcn/07_Reducing-deployment-complexity-by-bundling-cables.png" alt="图7 捆绑光纤示意图" title="图7 捆绑光纤示意图"></p>
+<h3 id="3-4-第四代Saturn"><a href="#3-4-第四代Saturn" class="headerlink" title="3.4 第四代Saturn"></a>3.4 第四代Saturn</h3><p>第四代的网络的设计目标依然是继续增加带宽和扩大规模。因此这一代中交换机使用了更加先进的24x10G交换芯片到高性能机架式ToR交换机中。如图8所示。</p>
+<p>Saturn的底盘支持12个线卡，可以提供288个端口的无阻塞交换能力。这次接入服务器需要的带宽可以配置为2Gbps或者5Gbps。同时，也是第一次通过光纤使得服务器最大可以达到10Gbps的带宽。而系统的总带宽也提高到207T。</p>
+<p><img src="/images/google-dcn/08_saturn.png" alt="图8 第四代Saturn" title="图8 第四代Saturn"></p>
+<h3 id="3-5-第五代Jupiter"><a href="#3-5-第五代Jupiter" class="headerlink" title="3.5 第五代Jupiter"></a>3.5 第五代Jupiter</h3><p>Jupiter是Google最新一代的数据中心网络，它引入了SDN技术并且使用了OpenFlow，其支持的网络带宽已经达到Pbps量级，满足了大规模数据中心对网络带宽的需求。Pbps的网络速度意味着网络能够在十分之一秒内就完成美国国会图书馆藏书所有扫描内容的数据传输，达到这一量级的Google数据中心网络则可以同时支持100000台计算节点以10Gbps的网络速度通信，这个规模是非常惊人的。</p>
+<p>Jupiter的结构如图9所示，并且首次使用了16x40G的交换芯片。骨干块分为两层，上层包含四组，每组向下提供32x40G的连接。下层包含8组，同时向上层和下层提供128x40G的接口。因此一个骨干块可以提供128x40G的带宽。</p>
+<p>汇聚块由8个Middle Block(MB)构成，MB的实际大小如图10所示每个汇聚块向上通过256x40G的接口与骨干块相连。整个网络带宽达到了1.28Pbps。</p>
+<p><img src="/images/google-dcn/09_Jupiter.png" alt="图9 第五代Jupiter" title="图9 第五代Jupiter"></p>
+<p><img src="/images/google-dcn/10_Middle-Block.png" alt="图10 一个Middle Block" title="图10 一个Middle Block"></p>
+<p>与第一代相比，Google的第五代数据中心网络带宽已经扩展了100余倍。正如前面提到的，在从2008年7月到2014年11月的短短几年间，Google数据中心内部的服务器产生的汇聚层流量已经增长近50倍。因此，不难看出，正是Google业务的蓬勃发展驱动了其数据中心网络技术的持续演进。</p>
+<h2 id="4-数据中心网络之间互连"><a href="#4-数据中心网络之间互连" class="headerlink" title="4. 数据中心网络之间互连"></a>4. 数据中心网络之间互连</h2><h3 id="4-1-彻底取代集群路由器CRs"><a href="#4-1-彻底取代集群路由器CRs" class="headerlink" title="4.1 彻底取代集群路由器CRs"></a>4.1 彻底取代集群路由器CRs</h3><p>在Watchtower刚开始部署的时候，使用的是图5所示的Bag-on-the-side的部署方式。可以发现网络中传统的Cluster Routers（CRs）和新的clos网络（如WatchTower）是共存的，这种渐进的部署方式设计之初是为了稳妥和安全。但是经过前三代的网络部署经验和技术积累，新的clos网络被时间证明是非常可靠的。另一方面，CRs的带宽非常有限，许多应用都需要爆发的带宽，如迁移数据服务、在cluster之间拷贝大规模的搜索索引数据等。然而CRs的性能大大限制了ToR之间需要通过CRs的流量带宽。</p>
+<p>因此Google这时候开始考虑去除CRs，取而代之的是通过集群边界路由器（Cluster Border Routers ，CBRs)直接与外部集群网络互连。Google内部把这项计划叫做WCC。与外部互连的方式可以有4种选项，如下图11所示。第一种的连接与FH1.1很像，但是前两种都无法提供爆发的带宽。Google最终选择了第四种，因为这样与外部连接的交换机在一个独立的块上，便于管理。</p>
+<p><img src="/images/google-dcn/11_Four-options-to-connect-to the-external-network.png" alt="图11 与外部网络层互连的四种可选方式" title="图11 与外部网络层互连的四种可选方式"></p>
+<p>在边界路由器上，Google运行标准的eBGP协议实现与外部集群网络之间的路由。通过WCC改造行动，Google自行设计的网络彻底的取代传统的网络。在这个意义上，Google自主实现了集群之间高吞吐量的数据传输，摆脱了对高性能网络设备厂商的依赖。</p>
+<h3 id="4-2-集群网络之间的互连"><a href="#4-2-集群网络之间的互连" class="headerlink" title="4.2 集群网络之间的互连"></a>4.2 集群网络之间的互连</h3><p>Google在同一栋楼中部署了多个集群，并且一个园区存在多个这样的大楼。WCC改造的集群边界路由器给集群之间的互连提供了大量的带宽。在Watchtower中，每个聚集块支持2.56Tbps的对外带宽，在Saturn中这一带宽更是达到了5.76Tbps。</p>
+<p>然而这时候外部网络中的设备还是基于昂贵的、端口有限的厂商设备。所以下一步的计划就是取代这些集群之间的的交换设备。Google的目标就是通过比现在更低成本的方式，最大化同一楼中，同一个园区内的集群之间传输带宽。如图12所示展示了在集群之间和园区内部这两个层次均实现BGP路由的互连结构。图的上半部分Freedome Block（FDB）是Google配置的一些路由器集合。</p>
+<p><img src="/images/google-dcn/12_Two-stage-fabrics-inter-cluster.png" alt="图12 集群内部和园区内部的两级结构" title="图12 集群内部和园区内部的两级结构"></p>
+<p>一栋大楼内部数据中心的Freedome通常包含四个独立的FDB块，用于连接同一个数据中心大楼的多个集群。也就是说，同一个大楼里不同集群之间的流量通常是这样的：首先从源集群的CBR层到数据中心的Freedome，一般到达FER层，最后到达目的集群的CBR。图7左下方就描述了一栋大楼内部的数据中心的Freedom的结构，并且给一栋大楼内部的带宽是去往同意园区内其他大楼带宽的8倍。</p>
+<p>类似的，同一个园区内部的Freedome同样由四个独立的FDB块构成，其南向的端口用于连接园区内多个的多个大楼内部数据中心的Fredome，北向的端口用于连接互联网。整个结构如图7右下方所示。</p>
+<h2 id="5-网络的中心化控制"><a href="#5-网络的中心化控制" class="headerlink" title="5. 网络的中心化控制"></a>5. 网络的中心化控制</h2><p> 在网络的控制平面，Google没有使用传统网络的解决方案，仍然采用了自主研发的道路。主要有四个原因。首先最重要的原因是，当时存在的传统路由协议，几乎不支持同等开销下的多路径转发。第二点，当时没有高质量的开源路由协议栈。为了打通交换机线卡到处理进程之间的数据包处理通道，Google当时做了大量的工作来修改硬件交换机的协议栈。第三，Google担心基于广播的路由协议在拥有数千台交换机的大规模网络中会存在性能和管理上的天花板。比如OSPF Areas就非常难以配置与排错。第四，网络的可管理性是一个关键的因素。</p>
+<p>由于数据中心网络中的路由都是基于具有多路径的静态拓扑，Google给每个交换机都会根据其位置预先设置一个角色。不同的交换机角色对应的预配置。整个网络有一个中心化的路由控制器，用于动态的搜集网络中的链路状态信息，然后通过可靠的控制平面网络Control Plane Network (CPN)分发给所有的交换机。路由控制器被设计得充分的的简单与高效。</p>
+<p>交换机根据路由控制器发来的的链路状态信息计算路由表，从而实现路由功能。Google把网络中的这种三层路由协议叫做Firepath。图13展示了整Firepath组件之间的相互关系，图14说明了Firepath协议的消息类型。更多路由实现、管理和配置细节可以看原文论文的讲述，在此就不一一描述了。</p>
+<p><img src="/images/google-dcn/13_Firepath-component-interactions.png" alt="图13 Firepath组件之间的相互关系" title="图13 Firepath组件之间的相互关系"></p>
+<p><img src="/images/google-dcn/14_Google-Firepath-Route-protocol.png" alt="图14 Google Firepath Route Controller工作示意" title="图14 Google Firepath Route Controller工作示意"></p>
+<p>总的来说，Google把整个数据中心网络当做一个具有成千上万个端口的单一结构，而不是看做由数百个独立的交换机个体组成的集合，从而在逻辑上避免了动态发现多个交换机的过程。另外，受到分布式文件系统GFS的启发，Google一如既往牛掰的给Jupiter和GoogleB4广域网设计了一个统一的控制架构。</p>
+<h2 id="6-小结"><a href="#6-小结" class="headerlink" title="6. 小结"></a>6. 小结</h2><p>在这个流量不断爆发的年代，数据中心对于带宽的需求增长迅速，而传统厂商封闭而又昂贵的网络设备必然会逐渐被更加通用、更便宜的设备所代替。Google在这方面走在了前列，展现出来了非常领先的网络技术，这也给带宽不断爆发的数据中心网络、运行商、ISP树立了榜样。而更加通用的硅交换芯片、转发设备也会有更大的市场，软件定义网络是数据中心网络不可阻挡的趋势。</p>
+<h2 id="相关资料"><a href="#相关资料" class="headerlink" title="相关资料"></a>相关资料</h2><p>[1] 论文原文<a href="http://conferences.sigcomm.org/sigcomm/2015/pdf/papers/p183.pdf" target="_blank" rel="noopener">http://conferences.sigcomm.org/sigcomm/2015/pdf/papers/p183.pdf</a><br>[2] Open Network Summit 2015 Presentation - Amin Vahdat: A look inside Google’s Data Center Networks<br>[3] <a href="http://www.sdnlab.com/12700.html" target="_blank" rel="noopener">http://www.sdnlab.com/12700.html</a></p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Networking/" rel="tag"># Networking</a>
+          
+            <a href="/tags/SDN/" rel="tag"># SDN</a>
+          
+            <a href="/tags/Google/" rel="tag"># Google</a>
+          
+            <a href="/tags/DCN/" rel="tag"># DCN</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2015/12/02/20151202-cross-river-python-recursion-way/" rel="next" title="商人过河问题的python递归解法">
+                <i class="fa fa-chevron-left"></i> 商人过河问题的python递归解法
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2016/05/16/20160516-HUAWEI-CodeCraft-2016-preliminary/" rel="prev" title="Huawei CodeCraft 2016 初赛解析">
+                Huawei CodeCraft 2016 初赛解析 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/images/avatar.gif"
+               alt="Peng Zheng" />
+          <p class="site-author-name" itemprop="name">Peng Zheng</p>
+           
+              <p class="site-description motion-element" itemprop="description"></p>
+          
+        </div>
+        <nav class="site-state motion-element">
+
+          
+            <div class="site-state-item site-state-posts">
+              <a href="/archives/">
+                <span class="site-state-item-count">13</span>
+                <span class="site-state-item-name">posts</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-categories">
+              <a href="/categories/index.html">
+                <span class="site-state-item-count">7</span>
+                <span class="site-state-item-name">categories</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-tags">
+              <a href="/tags/index.html">
+                <span class="site-state-item-count">27</span>
+                <span class="site-state-item-name">tags</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://www.linkedin.com/in/zeepen/" target="_blank" title="Linkedin">
+                  
+                    <i class="fa fa-fw fa-linkedin"></i>
+                  
+                    
+                      Linkedin
+                    
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="www.zeepen.com" target="_blank" title="Site">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                    
+                      Site
+                    
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="https://scholar.google.com/citations?user=gTj0d2oAAAAJ&hl=en" target="_blank" title="Scholar">
+                  
+                    <i class="fa fa-fw fa-google"></i>
+                  
+                    
+                      Scholar
+                    
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/Lineson" target="_blank" title="GitHub">
+                  
+                    <i class="fa fa-fw fa-github"></i>
+                  
+                    
+                      GitHub
+                    
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+
+        
+        
+
+        
+
+
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#目录"><span class="nav-number">1.</span> <span class="nav-text">目录</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-主要内容"><span class="nav-number">2.</span> <span class="nav-text">1. 主要内容</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-Google创新网络技术的动机"><span class="nav-number">3.</span> <span class="nav-text">2. Google创新网络技术的动机</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-传统的Google-数据中心内部网络架构"><span class="nav-number">3.1.</span> <span class="nav-text">2.1 传统的Google 数据中心内部网络架构</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-传统DCN网络成本感人"><span class="nav-number">3.2.</span> <span class="nav-text">2.2 传统DCN网络成本感人</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-DCN网络创新的契机"><span class="nav-number">3.3.</span> <span class="nav-text">2.3 DCN网络创新的契机</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-Google数据中心网络技术"><span class="nav-number">4.</span> <span class="nav-text">3. Google数据中心网络技术</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-第一代Firehose1-0"><span class="nav-number">4.1.</span> <span class="nav-text">3.1 第一代Firehose1.0</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-第二代Firehose1-1"><span class="nav-number">4.2.</span> <span class="nav-text">3.2 第二代Firehose1.1</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-3-第三代Watchtower"><span class="nav-number">4.3.</span> <span class="nav-text">3.3 第三代Watchtower</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-4-第四代Saturn"><span class="nav-number">4.4.</span> <span class="nav-text">3.4 第四代Saturn</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-5-第五代Jupiter"><span class="nav-number">4.5.</span> <span class="nav-text">3.5 第五代Jupiter</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-数据中心网络之间互连"><span class="nav-number">5.</span> <span class="nav-text">4. 数据中心网络之间互连</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#4-1-彻底取代集群路由器CRs"><span class="nav-number">5.1.</span> <span class="nav-text">4.1 彻底取代集群路由器CRs</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-2-集群网络之间的互连"><span class="nav-number">5.2.</span> <span class="nav-text">4.2 集群网络之间的互连</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-网络的中心化控制"><span class="nav-number">6.</span> <span class="nav-text">5. 网络的中心化控制</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-小结"><span class="nav-number">7.</span> <span class="nav-text">6. 小结</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#相关资料"><span class="nav-number">8.</span> <span class="nav-text">相关资料</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2018</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Peng Zheng</span>
+</div>
+
+
+<div class="powered-by">
+  Powered by <a class="theme-link" href="https://hexo.io">Hexo</a>
+</div>
+
+<div class="theme-info">
+  Theme -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Pisces
+  </a>
+</div>
+
+
+        
+<div class="busuanzi-count">
+  <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+  
+    <span class="site-uv">
+      <i class="fa fa-user"></i>
+      <span class="busuanzi-value" id="busuanzi_value_site_uv"></span>
+      
+    </span>
+  
+
+  
+    <span class="site-pv">
+      <i class="fa fa-eye"></i>
+      <span class="busuanzi-value" id="busuanzi_value_site_pv"></span>
+      
+    </span>
+  
+</div>
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+          <span id="scrollpercent"><span>0</span>%</span>
+        
+      </div>
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.2"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.2"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.1.2"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.2"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.2"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.2"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.2"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+          processEscapes: true,
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+        }
+      });
+    </script>
+
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Queue(function() {
+        var all = MathJax.Hub.getAllJax(), i;
+        for (i=0; i < all.length; i += 1) {
+          all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+      });
+    </script>
+    <script type="text/javascript" src="//cdn.bootcss.com/mathjax/2.7.1/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+  
+
+
+  
+
+  
+
+</body>
+</html>

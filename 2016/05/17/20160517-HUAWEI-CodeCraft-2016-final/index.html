@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.2" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="algorithm,CodeCraft,Networking,C," />
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.1.2" />
+
+
+
+
+
+
+<meta name="description" content="复赛问题给定一个带权重的有向图G=(V,E)，V为顶点集，E为有向边集，每一条有向边均有一个权重。对于给定的顶点s、t，以及V的子集V’和V’’，寻找从s到t的两条不成环的有向路径P’和P’’，使得P’经过V’中所有的顶点，而P’’经过V’’中所有的顶点（对P’经过V’中顶点的顺序以及P’’经过V’’中顶点的顺序不做要求）。 若不同时存在这样的两条有向路径，则输出无解，程序运行时间越短，则视为结果">
+<meta name="keywords" content="algorithm,CodeCraft,Networking,C">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Huawei CodeCraft 2016 复赛解析">
+<meta property="og:url" content="http://zeepen.com/2016/05/17/20160517-HUAWEI-CodeCraft-2016-final/index.html">
+<meta property="og:site_name" content="Peng Zheng">
+<meta property="og:description" content="复赛问题给定一个带权重的有向图G=(V,E)，V为顶点集，E为有向边集，每一条有向边均有一个权重。对于给定的顶点s、t，以及V的子集V’和V’’，寻找从s到t的两条不成环的有向路径P’和P’’，使得P’经过V’中所有的顶点，而P’’经过V’’中所有的顶点（对P’经过V’中顶点的顺序以及P’’经过V’’中顶点的顺序不做要求）。 若不同时存在这样的两条有向路径，则输出无解，程序运行时间越短，则视为结果">
+<meta property="og:locale" content="default">
+<meta property="og:updated_time" content="2017-03-12T06:59:16.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Huawei CodeCraft 2016 复赛解析">
+<meta name="twitter:description" content="复赛问题给定一个带权重的有向图G=(V,E)，V为顶点集，E为有向边集，每一条有向边均有一个权重。对于给定的顶点s、t，以及V的子集V’和V’’，寻找从s到t的两条不成环的有向路径P’和P’’，使得P’经过V’中所有的顶点，而P’’经过V’’中所有的顶点（对P’经过V’中顶点的顺序以及P’’经过V’’中顶点的顺序不做要求）。 若不同时存在这样的两条有向路径，则输出无解，程序运行时间越短，则视为结果">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    sidebar: {"position":"left","display":"hide","offset":12,"offset_float":12,"b2t":false,"scrollpercent":"ture","onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://zeepen.com/2016/05/17/20160517-HUAWEI-CodeCraft-2016-final/"/>
+
+
+
+
+
+  <title>Huawei CodeCraft 2016 复赛解析 | Peng Zheng</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="default">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Peng Zheng</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">靡不有初 鲜克有终</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br />
+            
+            About
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            Categories
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            Archives
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            Tags
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-friends">
+          <a href="/friends/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-bookmark"></i> <br />
+            
+            menu.friends
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://zeepen.com/2016/05/17/20160517-HUAWEI-CodeCraft-2016-final/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Peng Zheng">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Peng Zheng">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Huawei CodeCraft 2016 复赛解析</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2016-05-17T10:42:55-04:00">
+                2016-05-17
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/algorithm/" itemprop="url" rel="index">
+                    <span itemprop="name">algorithm</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+            <span class="post-meta-divider">|</span>
+            <span class="page-pv"><i class="fa fa-file-o"></i>
+            <span class="busuanzi-value" id="busuanzi_value_page_pv" ></span>
+            </span>
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="复赛问题"><a href="#复赛问题" class="headerlink" title="复赛问题"></a>复赛问题</h2><p>给定一个带权重的有向图G=(V,E)，V为顶点集，E为有向边集，每一条有向边均有一个权重。对于给定的顶点s、t，以及V的子集V’和V’’，寻找从s到t的两条不成环的有向路径P’和P’’，使得P’经过V’中所有的顶点，而P’’经过V’’中所有的顶点（对P’经过V’中顶点的顺序以及P’’经过V’’中顶点的顺序不做要求）。</p>
+<p>若不同时存在这样的两条有向路径，则输出无解，程序运行时间越短，则视为结果越优； 若同时存在这样的两条有向路径，则输出得到的两条路径，按下列优先级从高到低评价结果优劣：<br>1、    路径P’和P’’重合的有向边个数越少，则视为结果越优；<br>2、    在两条路径重合的有向边个数一样的情况下，两条路径权重总和越少，则视为结果越优；<br>3、    在上述两个指标一样的情况下，程序运行时间越短，则视为结果越优。<br><a id="more"></a><br>说明：<br>1）图中所有权重均为[1,100]内的整数；<br>2）任一有向边的起点不等于终点；<br>3）连接顶点A至顶点B的有向边可能超过一条，其权重可能一样，也可能不一样；<br>4）该有向图的顶点不会超过2000个，每个顶点出度（以该点为起点的有向边的数量）不超过20；<br>5）V’和V’’中元素个数均不超过100，交集为空，且不包含起始顶点s和终止顶点t；<br>6）从s到t的不成环有向路径P是指，P为由一系列有向边组成的从s至t的有向连通路径，且不允许重复经过任一顶点；<br>7）路径的权重是指所有组成该路径的所有有向边的权重之和（重复边的权重应分别在两条路径中各计算一次）。</p>
+<h2 id="输入与输出"><a href="#输入与输出" class="headerlink" title="输入与输出"></a>输入与输出</h2><h3 id="输入文件格式"><a href="#输入文件格式" class="headerlink" title="输入文件格式"></a>输入文件格式</h3><p>以两个.csv文件（csv是以逗号为分隔符的文本文件）给出输入数据，一个为图的数据(G)，一个为需要计算的路径信息(s,t,V’,V’’)。文件每行以换行符（ASCII’\n’即0x0a）为结尾。</p>
+<p>1）图的数据中，每一行包含如下的信息：<br>LinkID,SourceID,DestinationID,Cost<br>其中，LinkID为该有向边的索引，SourceID为该有向边的起始顶点的索引，DestinationID为该有向边的终止顶点的索引，Cost为该有向边的权重。顶点与有向边的索引均从0开始编号(不一定连续，但用例保证索引不重复)，顶点索引范围在[0，2000)，有向边索引范围在[0，40000)。</p>
+<p>2）路径信息中，只有一行如下数据：<br>DemandID,SourceID,DestinationID,IncludingSet<br>其中，DemandID里面第一行为1，第二行为2，表示路径索引，1表示P’，2表示P’’，SourceID为起始顶点s的索引，DestinationID为终止顶点t的索引，IncludingSet表示必须经过的顶点集合V’或V’’，其中不同的顶点索引之间用“ | ”分割，如果该路径没有必经顶点要求，则此处输入NA。</p>
+<h3 id="输出文件格式"><a href="#输出文件格式" class="headerlink" title="输出文件格式"></a>输出文件格式</h3><p>输出文件同样为一个.csv 文件。<br>1）如果该测试用例存在满足要求的有向路径P’和P’’，则输出两行信息，第一行按P’经过的有向边顺序，依次输出有向边的索引，索引之间用“ | ”分割；第二行按P’’经过的有向边顺序依次输出有向边的索引，索引之间用“ | ”分割；<br>2）如果该测试用例不同时存在两条满足要求的有向路径P’和P’’，则只输出一行信息：NA；<br>3）每一行只允许输出最多一条有向路径，以换行符0x0a结尾。</p>
+<h2 id="求解算法"><a href="#求解算法" class="headerlink" title="求解算法"></a>求解算法</h2><p>这是初赛问题的升级版，最简单直接的想法就是使用初赛的算法求两次路径，然后不断迭代，优化到重合边更少的可行解。但是，我们测试的时候发现，初赛模拟退火算法的收敛速度远远比不上复赛扩大的拓扑规模。面对这样的现实，我们只能改进初赛中路径的退火策略。</p>
+<p>我们将初赛中的3-opt的退火方式改进为N-opt的退火方式，同时也对每一子迭代的过程中的寻路算法由Dijkstra改进为BFS，由此我们得到了非常快速的收敛速度。<br>由于我们时间非常紧张，实验室还有一堆活儿=.=，虽然通宵调试，但是整体实现仍然非常粗糙，还有多处来不及优化，导致比赛止步16强。<a href="https://github.com/Lineson/CodeCraft-2016Final" target="_blank" rel="noopener">这里</a>是我们的算法实现。</p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/algorithm/" rel="tag"># algorithm</a>
+          
+            <a href="/tags/CodeCraft/" rel="tag"># CodeCraft</a>
+          
+            <a href="/tags/Networking/" rel="tag"># Networking</a>
+          
+            <a href="/tags/C/" rel="tag"># C</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2016/05/16/20160516-HUAWEI-CodeCraft-2016-preliminary/" rel="next" title="Huawei CodeCraft 2016 初赛解析">
+                <i class="fa fa-chevron-left"></i> Huawei CodeCraft 2016 初赛解析
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2016/05/26/20160526-ONetSwitch-System-introduction/" rel="prev" title="ONetSwitch-软件系统介绍">
+                ONetSwitch-软件系统介绍 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/images/avatar.gif"
+               alt="Peng Zheng" />
+          <p class="site-author-name" itemprop="name">Peng Zheng</p>
+           
+              <p class="site-description motion-element" itemprop="description"></p>
+          
+        </div>
+        <nav class="site-state motion-element">
+
+          
+            <div class="site-state-item site-state-posts">
+              <a href="/archives/">
+                <span class="site-state-item-count">13</span>
+                <span class="site-state-item-name">posts</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-categories">
+              <a href="/categories/index.html">
+                <span class="site-state-item-count">7</span>
+                <span class="site-state-item-name">categories</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-tags">
+              <a href="/tags/index.html">
+                <span class="site-state-item-count">27</span>
+                <span class="site-state-item-name">tags</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://www.linkedin.com/in/zeepen/" target="_blank" title="Linkedin">
+                  
+                    <i class="fa fa-fw fa-linkedin"></i>
+                  
+                    
+                      Linkedin
+                    
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="www.zeepen.com" target="_blank" title="Site">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                    
+                      Site
+                    
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="https://scholar.google.com/citations?user=gTj0d2oAAAAJ&hl=en" target="_blank" title="Scholar">
+                  
+                    <i class="fa fa-fw fa-google"></i>
+                  
+                    
+                      Scholar
+                    
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/Lineson" target="_blank" title="GitHub">
+                  
+                    <i class="fa fa-fw fa-github"></i>
+                  
+                    
+                      GitHub
+                    
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+
+        
+        
+
+        
+
+
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#复赛问题"><span class="nav-number">1.</span> <span class="nav-text">复赛问题</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#输入与输出"><span class="nav-number">2.</span> <span class="nav-text">输入与输出</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#输入文件格式"><span class="nav-number">2.1.</span> <span class="nav-text">输入文件格式</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#输出文件格式"><span class="nav-number">2.2.</span> <span class="nav-text">输出文件格式</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#求解算法"><span class="nav-number">3.</span> <span class="nav-text">求解算法</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2018</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Peng Zheng</span>
+</div>
+
+
+<div class="powered-by">
+  Powered by <a class="theme-link" href="https://hexo.io">Hexo</a>
+</div>
+
+<div class="theme-info">
+  Theme -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Pisces
+  </a>
+</div>
+
+
+        
+<div class="busuanzi-count">
+  <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+  
+    <span class="site-uv">
+      <i class="fa fa-user"></i>
+      <span class="busuanzi-value" id="busuanzi_value_site_uv"></span>
+      
+    </span>
+  
+
+  
+    <span class="site-pv">
+      <i class="fa fa-eye"></i>
+      <span class="busuanzi-value" id="busuanzi_value_site_pv"></span>
+      
+    </span>
+  
+</div>
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+          <span id="scrollpercent"><span>0</span>%</span>
+        
+      </div>
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.2"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.2"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.1.2"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.2"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.2"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.2"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.2"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+          processEscapes: true,
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+        }
+      });
+    </script>
+
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Queue(function() {
+        var all = MathJax.Hub.getAllJax(), i;
+        for (i=0; i < all.length; i += 1) {
+          all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+      });
+    </script>
+    <script type="text/javascript" src="//cdn.bootcss.com/mathjax/2.7.1/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+  
+
+
+  
+
+  
+
+</body>
+</html>

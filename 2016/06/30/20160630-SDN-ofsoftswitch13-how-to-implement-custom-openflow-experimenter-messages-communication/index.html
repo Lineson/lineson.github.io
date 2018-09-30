@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.2" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="Networking,ONetSwitch,SDN,softswitch13,Openflow," />
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.1.2" />
+
+
+
+
+
+
+<meta name="description" content="当前Openflow协议中的消息基本可以满足我们对SDN交换机的管理需要，但是在很多情况下，我们更希望能够与openflow交换机交互自定义的管理消息，这就需要用到openflow的实验消息(experimenter messages)。本文以SDN软件交换机ofsoftswitch13为例，来说明如何实现通过自定义的experimenter消息来与交换机通信。">
+<meta name="keywords" content="Networking,ONetSwitch,SDN,softswitch13,Openflow">
+<meta property="og:type" content="article">
+<meta property="og:title" content="在SDN软件交换机ofsoftswitch13中实现自定义experimenter消息">
+<meta property="og:url" content="http://zeepen.com/2016/06/30/20160630-SDN-ofsoftswitch13-how-to-implement-custom-openflow-experimenter-messages-communication/index.html">
+<meta property="og:site_name" content="Peng Zheng">
+<meta property="og:description" content="当前Openflow协议中的消息基本可以满足我们对SDN交换机的管理需要，但是在很多情况下，我们更希望能够与openflow交换机交互自定义的管理消息，这就需要用到openflow的实验消息(experimenter messages)。本文以SDN软件交换机ofsoftswitch13为例，来说明如何实现通过自定义的experimenter消息来与交换机通信。">
+<meta property="og:locale" content="default">
+<meta property="og:updated_time" content="2017-03-12T06:59:16.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="在SDN软件交换机ofsoftswitch13中实现自定义experimenter消息">
+<meta name="twitter:description" content="当前Openflow协议中的消息基本可以满足我们对SDN交换机的管理需要，但是在很多情况下，我们更希望能够与openflow交换机交互自定义的管理消息，这就需要用到openflow的实验消息(experimenter messages)。本文以SDN软件交换机ofsoftswitch13为例，来说明如何实现通过自定义的experimenter消息来与交换机通信。">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    sidebar: {"position":"left","display":"hide","offset":12,"offset_float":12,"b2t":false,"scrollpercent":"ture","onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://zeepen.com/2016/06/30/20160630-SDN-ofsoftswitch13-how-to-implement-custom-openflow-experimenter-messages-communication/"/>
+
+
+
+
+
+  <title>在SDN软件交换机ofsoftswitch13中实现自定义experimenter消息 | Peng Zheng</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="default">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Peng Zheng</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">靡不有初 鲜克有终</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br />
+            
+            About
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            Categories
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            Archives
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            Tags
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-friends">
+          <a href="/friends/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-bookmark"></i> <br />
+            
+            menu.friends
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://zeepen.com/2016/06/30/20160630-SDN-ofsoftswitch13-how-to-implement-custom-openflow-experimenter-messages-communication/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Peng Zheng">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Peng Zheng">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">在SDN软件交换机ofsoftswitch13中实现自定义experimenter消息</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2016-06-30T16:58:31-04:00">
+                2016-06-30
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/ONetSwitch/" itemprop="url" rel="index">
+                    <span itemprop="name">ONetSwitch</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+            <span class="post-meta-divider">|</span>
+            <span class="page-pv"><i class="fa fa-file-o"></i>
+            <span class="busuanzi-value" id="busuanzi_value_page_pv" ></span>
+            </span>
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>当前Openflow协议中的消息基本可以满足我们对SDN交换机的管理需要，但是在很多情况下，我们更希望能够与openflow交换机交互自定义的管理消息，这就需要用到openflow的实验消息(experimenter messages)。本文以SDN软件交换机ofsoftswitch13为例，来说明如何实现通过自定义的experimenter消息来与交换机通信。</p>
+<a id="more"></a>
+<p>实际上，ofsoftswitch13中已经有几个实验消息实现的范例，因此我侧重于分析ofsoftswitch13工程中的实现过程。当我们将experimenter消息的处理过程分析清楚后，添加自定义的实验消息就会变得非常简单。总体来说，交换机对openflow消息的处理可以划分为三个过程：</p>
+<ul>
+<li>一是对收到的openflow消息的解析过程。这个过程实现的功能是将数据包从网络字节序的线格式(wire format)解析为主机字节序的openflow消息格式。</li>
+<li>二是对消息处理过程。比如对交换机进行配置等。这个过程比较直接，下文就不展开分析了。</li>
+<li>三是交换机向控制器回复openflow消息的过程。这与第一个过程的步骤几乎是相反的，主要实现的功能是将待发送消息的内容打包为网络字节序的线格式(wire format)，然后发送给控制器的过程。</li>
+</ul>
+<p>如果弄清楚了上述三个过程的实现，那么实现自定义的experimenter消息的步骤就会变得非常清晰。下面首先说明ofsoftswitch13对自定义的experiment消息的解析流程，以及交换机向控制器回复openflow消息的流程。最后说明自定义experimenter消息的工程实现操作步骤。</p>
+<h2 id="自定义exp消息的处理流程"><a href="#自定义exp消息的处理流程" class="headerlink" title="自定义exp消息的处理流程"></a>自定义exp消息的处理流程</h2><p>交换机收到openflow消息之后，首先对消息内容进行解析。然后根据解析得到的数据包类型调用相应的处理函数。</p>
+<h3 id="exp消息处理函数的调用过程"><a href="#exp消息处理函数的调用过程" class="headerlink" title="exp消息处理函数的调用过程"></a>exp消息处理函数的调用过程</h3><p>前文<a href="http://zeepen.com/2016/06/25/20160626-SDN-ofsoftswitch13-source-analysis-of-packet-process/">SDN软件交换机中数据包的处理流程</a>对openflow交换机的数据包处理过程进行了分析，文中提到了位于文件<code>oflib/ofl-messages-unpack.c</code>中的<a href="http://zeepen.com/2016/06/25/20160626-SDN-ofsoftswitch13-source-analysis-of-packet-process/#4解析openflow消息">openflow消息的解析函数</a><code>ofl_msg_unpack()</code>，交换机对自定义<code>experimenter</code>消息的解析也正是从该函数开始的。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">ofl_err</span><br><span class="line">ofl_msg_unpack(uint8_t *buf, size_t buf_len, struct ofl_msg_header **msg, uint32_t *xid, struct ofl_exp *exp) &#123;</span><br><span class="line">    struct ofp_header *oh;</span><br><span class="line">    oh = (struct ofp_header *)buf;</span><br><span class="line">    switch (oh-&gt;type) &#123;</span><br><span class="line">        ...</span><br><span class="line">        case OFPT_EXPERIMENTER:</span><br><span class="line">            if (exp == NULL || exp-&gt;msg == NULL || exp-&gt;msg-&gt;unpack == NULL) &#123;</span><br><span class="line">                OFL_LOG_WARN(LOG_MODULE, &quot;Received EXPERIMENTER message, but no callback was given.&quot;);</span><br><span class="line">                error = ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_EXPERIMENTER);</span><br><span class="line">            &#125; else &#123;</span><br><span class="line">                error = exp-&gt;msg-&gt;unpack(oh, &amp;len, (struct ofl_msg_experimenter **)msg);</span><br><span class="line">            &#125;</span><br><span class="line">            break;</span><br><span class="line">        ...</span><br><span class="line">    )</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>从<code>ofl_msg_unpack()</code>对openflow子类型消息解析函数的调用中，我们可以发现experimenter消息的调用与其他openflow消息的调用有所不同，使用的调用方式是这样的：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">exp-&gt;msg-&gt;unpack(oh, &amp;len, (struct ofl_msg_experimenter **)msg)</span><br></pre></td></tr></table></figure></p>
+<p>其中<code>exp</code>是通过函数参数传入的。形参为<code>struct ofl_exp *exp</code>。传入的值是<code>dp-&gt;exp</code>，见文件<code>udatapath/datapath.c</code>：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ofl_msg_unpack(buffer-&gt;data, buffer-&gt;size, &amp;msg, &amp;(sender.xid), dp-&gt;exp);</span><br></pre></td></tr></table></figure></p>
+<p>因此，在函数<code>ofl_msg_unpack()</code>（位于文件<code>oflib/ofl-messages-unpack.c</code>）中使用<strong><code>exp-&gt;msg-&gt;unpack(...)</code></strong>这种调用方式会等价为<strong><code>ofl_exp_msg_unpack(...)</code></strong>（位于文件<code>udatapath/datapath.c</code>）。而函数<code>ofl_exp_msg_unpack(...)</code>的实现位于文件<code>oflib-exp/ofl-exp.c</code>中。</p>
+<h3 id="exp消息处理的函数指针"><a href="#exp消息处理的函数指针" class="headerlink" title="exp消息处理的函数指针"></a>exp消息处理的函数指针</h3><p>在这里补充一下exp消息处理函数指针的初始化位置。exp消息解析函数指针在datapath初始化的时候传给了datapath，参见文件<code>udatapath/datapath.c</code>中的datapath初始化函数：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">struct datapath *</span><br><span class="line">dp_new(void) &#123;</span><br><span class="line">    struct datapath *dp;</span><br><span class="line">    dp = xmalloc(sizeof(struct datapath));</span><br><span class="line">	...</span><br><span class="line">    dp-&gt;exp = &amp;dp_exp;</span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>其中，<code>dp_exp</code>是在该文件中定义的函数指针结构体，指向exp消息的处理函数：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">/* Callbacks for processing experimenter messages in OFLib. */</span><br><span class="line">static struct ofl_exp_msg dp_exp_msg =</span><br><span class="line">        &#123;.pack      = ofl_exp_msg_pack,</span><br><span class="line">         .unpack    = ofl_exp_msg_unpack,</span><br><span class="line">         .free      = ofl_exp_msg_free,</span><br><span class="line">         .to_string = ofl_exp_msg_to_string&#125;;</span><br><span class="line"></span><br><span class="line">static struct ofl_exp dp_exp =</span><br><span class="line">        &#123;.act   = NULL,</span><br><span class="line">         .inst  = NULL,</span><br><span class="line">         .match = NULL,</span><br><span class="line">         .stats = NULL,</span><br><span class="line">         .msg   = &amp;dp_exp_msg&#125;;</span><br></pre></td></tr></table></figure></p>
+<h3 id="exp消息解析实现"><a href="#exp消息解析实现" class="headerlink" title="exp消息解析实现"></a>exp消息解析实现</h3><p>自定义的exp消息实现于文件<code>oflib-exp/ofl-exp.c</code>中：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">ofl_err</span><br><span class="line">ofl_exp_msg_unpack(struct ofp_header *oh, size_t *len, struct ofl_msg_experimenter **msg) &#123;</span><br><span class="line">    struct ofp_experimenter_header *exp;</span><br><span class="line">	...</span><br><span class="line">    exp = (struct ofp_experimenter_header *)oh;</span><br><span class="line"></span><br><span class="line">    switch (htonl(exp-&gt;experimenter)) &#123;</span><br><span class="line">        case (OPENFLOW_VENDOR_ID): &#123;</span><br><span class="line">            return ofl_exp_openflow_msg_unpack(oh, len, msg);</span><br><span class="line">        &#125;</span><br><span class="line">        case (NX_VENDOR_ID): &#123;</span><br><span class="line">            return ofl_exp_nicira_msg_unpack(oh, len, msg);</span><br><span class="line">        &#125;</span><br><span class="line">        case (MUTIQUEUE_VENDOR_ID): &#123;</span><br><span class="line">            return ofl_exp_mutiqueue_msg_unpack(oh, len, msg);</span><br><span class="line">        &#125;</span><br><span class="line">        default: &#123;</span><br><span class="line">            OFL_LOG_WARN(LOG_MODULE, &quot;Trying to unpack unknown EXPERIMENTER message (%u).&quot;, htonl(exp-&gt;experimenter));</span><br><span class="line">            return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_EXPERIMENTER);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>下面以openflow extention queue msg为例讲解exp消息解析的实现。</p>
+<h4 id="openflow-extention-queue-msg结构体定义"><a href="#openflow-extention-queue-msg结构体定义" class="headerlink" title="openflow extention queue msg结构体定义"></a>openflow extention queue msg结构体定义</h4><p><code>queue_msg</code>的结构定义如下，位于<code>oflib-exp/ofl-exp-openflow.h</code>中：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">struct ofl_exp_openflow_msg_header &#123;</span><br><span class="line">    struct ofl_msg_experimenter   header; /* OPENFLOW_VENDOR_ID */</span><br><span class="line"></span><br><span class="line">    uint32_t   type;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line">struct ofl_exp_openflow_msg_queue &#123;</span><br><span class="line">    struct ofl_exp_openflow_msg_header   header; /* OFP_EXT_QUEUE_MODIFY|DELETE */</span><br><span class="line"></span><br><span class="line">    uint32_t                  port_id;</span><br><span class="line">    struct ofl_packet_queue  *queue;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure></p>
+<p>头文件中扩展消息定义如下，如<code></code>include/openflow/openflow-ext.h`文件：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">enum ofp_extension_commands &#123; /* Queue configuration commands */</span><br><span class="line">    /* Queue Commands */</span><br><span class="line">    OFP_EXT_QUEUE_MODIFY,  /* Add and/or modify */</span><br><span class="line">    OFP_EXT_QUEUE_DELETE,  /* Remove a queue */</span><br><span class="line">    OFP_EXT_SET_DESC,      /* Set ofp_desc_stat-&gt;dp_desc */</span><br><span class="line"></span><br><span class="line">    OFP_EXT_COUNT</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line">struct ofp_extension_header &#123;</span><br><span class="line">    struct ofp_header header;</span><br><span class="line">    uint32_t vendor;            /* OPENFLOW_VENDOR_ID. */</span><br><span class="line">    uint32_t subtype;           /* One of ofp_extension_commands */</span><br><span class="line">&#125;;</span><br><span class="line">OFP_ASSERT(sizeof(struct ofp_extension_header) == 16);</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">struct openflow_queue_command_header &#123;</span><br><span class="line">    struct ofp_extension_header header;</span><br><span class="line">    uint32_t port;              /* Port for operations */</span><br><span class="line">    uint8_t pad[4];             /* Align to 64-bits */</span><br><span class="line">    uint8_t body[0];            /* Body of ofp_queue objects for op. */</span><br><span class="line">&#125;;</span><br><span class="line">OFP_ASSERT(sizeof(struct openflow_queue_command_header) == 24);</span><br></pre></td></tr></table></figure></p>
+<h4 id="openflow-extention-queue-unpack"><a href="#openflow-extention-queue-unpack" class="headerlink" title="openflow extention queue unpack"></a>openflow extention queue unpack</h4><p>案例中的experimenter消息unpack的最终实现位于<code>oflib-exp/ofl-exp-openflow.c</code>文件中。该函数实现的功能是将交换机收到的原始数据包（以网络字节存储于内存），解析为用户定义的实验消息格式（以主机字节序存储于内存）。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br></pre></td><td class="code"><pre><span class="line">ofl_err</span><br><span class="line">ofl_exp_openflow_msg_unpack(struct ofp_header *oh, size_t *len, struct ofl_msg_experimenter **msg) &#123;</span><br><span class="line">    struct ofp_extension_header *exp;</span><br><span class="line">	...</span><br><span class="line">    exp = (struct ofp_extension_header *)oh;</span><br><span class="line"></span><br><span class="line">    if (ntohl(exp-&gt;vendor) == OPENFLOW_VENDOR_ID) &#123;</span><br><span class="line"></span><br><span class="line">        switch (ntohl(exp-&gt;subtype)) &#123;</span><br><span class="line">            case (OFP_EXT_QUEUE_MODIFY):</span><br><span class="line">            case (OFP_EXT_QUEUE_DELETE): &#123;</span><br><span class="line">                struct openflow_queue_command_header *src;</span><br><span class="line">                struct ofl_exp_openflow_msg_queue *dst;</span><br><span class="line">                ofl_err error;</span><br><span class="line"></span><br><span class="line">                if (*len &lt; sizeof(struct openflow_queue_command_header)) &#123;</span><br><span class="line">                    OFL_LOG_WARN(LOG_MODULE, &quot;Received EXT_QUEUE_MODIFY message has invalid length (%zu).&quot;, *len);</span><br><span class="line">                    return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);</span><br><span class="line">                &#125;</span><br><span class="line">                *len -= sizeof(struct openflow_queue_command_header);</span><br><span class="line"></span><br><span class="line">                src = (struct openflow_queue_command_header *)exp;</span><br><span class="line"></span><br><span class="line">                dst = (struct ofl_exp_openflow_msg_queue *)malloc(sizeof(struct ofl_exp_openflow_msg_queue));</span><br><span class="line">                dst-&gt;header.header.experimenter_id = ntohl(exp-&gt;vendor);</span><br><span class="line">                dst-&gt;header.type                   = ntohl(exp-&gt;subtype);</span><br><span class="line">                dst-&gt;port_id                       = ntohl(src-&gt;port);</span><br><span class="line"></span><br><span class="line">                error = ofl_structs_packet_queue_unpack((struct ofp_packet_queue *)(src-&gt;body), len, &amp;(dst-&gt;queue));</span><br><span class="line">                if (error) &#123;</span><br><span class="line">                    free(dst);</span><br><span class="line">                    return error;</span><br><span class="line">                &#125;</span><br><span class="line"></span><br><span class="line">                (*msg) = (struct ofl_msg_experimenter *)dst;</span><br><span class="line">                return 0;</span><br><span class="line">            &#125;</span><br><span class="line">			...</span><br><span class="line">            default: &#123;</span><br><span class="line">                OFL_LOG_WARN(LOG_MODULE, &quot;Trying to unpack unknown Openflow Experimenter message.&quot;);</span><br><span class="line">                return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_EXPERIMENTER);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125; else &#123;</span><br><span class="line">        OFL_LOG_WARN(LOG_MODULE, &quot;Trying to unpack non-Openflow Experimenter message.&quot;);</span><br><span class="line">        return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_EXPERIMENTER);</span><br><span class="line">    &#125;</span><br><span class="line">    free(msg);</span><br><span class="line">    return 0;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h3 id="exp消息的处理"><a href="#exp消息的处理" class="headerlink" title="exp消息的处理"></a>exp消息的处理</h3><p>消息解析完成之后，exp消息数据包的形态就由<code>opfbuf</code>结构解析为了对应的exp结构体。前文<a href="http://zeepen.com/2016/06/25/20160626-SDN-ofsoftswitch13-source-analysis-of-packet-process/">SDN软件交换机中数据包的处理流程</a><code>openflow消息的处理</code>这一小节中提到，函数<code>handle_control_msg()</code>会根据消息的不同类型分配给不同的处理函数，实验消息也是其中的一种，由<code>dp_exp_message()</code>函数进行处理。</p>
+<p>从exp处理函数的上层调用接口来看，<code>remote_rconn_run</code>调用消息解析函数之后，如果解析无误，则继续调用<code>handle_control_msg()</code>函数对消息内容进行处理。与<code>ofl_msg_unpack()</code>类似，函数<code>handle_control_msg()</code>定义于文件<code>udtapath/dp_control.c</code>中，会根据消息的不同类型分配给不同的处理函数，主要代码入下。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">ofl_err handle_control_msg(struct datapath *dp, struct ofl_msg_header *msg, const struct sender *sender) &#123;</span><br><span class="line">    switch (msg-&gt;type) &#123;</span><br><span class="line">        ...</span><br><span class="line">        case OFPT_EXPERIMENTER: &#123;</span><br><span class="line">            return dp_exp_message(dp, (struct ofl_msg_experimenter *)msg, sender);</span><br><span class="line">        &#125;</span><br><span class="line">        ...</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>其中需要<strong>注意的问题</strong>是代码内存块的释放：如果处理exp消息的调用函数发现错误，则需要返回错误代码，并且保持传入的exp消息未有任何改动，由<code>handle_control_msg()</code>的主调函数(<code>remote_rconn_run()</code>)放内存；如果exp消息的调用函数处理正常，则需要被调函数(<code>dp_exp_message()</code>)释放数据包内存。</p>
+<p>函数<code>dp_exp_message()</code>定义于文件<code>udatapath/dp_exp.c</code>中，该函数根据experimenter消息的ID调用相应的处理函数。如果你自定义了一种新的实验消息，就需要在这里增加对实验消息的处理方式。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line">ofl_err</span><br><span class="line">dp_exp_message(struct datapath *dp,</span><br><span class="line">                                struct ofl_msg_experimenter *msg,</span><br><span class="line">                               const struct sender *sender) &#123;</span><br><span class="line"></span><br><span class="line">    switch (msg-&gt;experimenter_id) &#123;</span><br><span class="line">        case (OPENFLOW_VENDOR_ID): &#123;</span><br><span class="line">            struct ofl_exp_openflow_msg_header *exp = (struct ofl_exp_openflow_msg_header *)msg;</span><br><span class="line"></span><br><span class="line">            switch(exp-&gt;type) &#123;</span><br><span class="line">                case (OFP_EXT_QUEUE_MODIFY): &#123;</span><br><span class="line">                    return dp_ports_handle_queue_modify(dp, (struct ofl_exp_openflow_msg_queue *)msg, sender);</span><br><span class="line">                &#125;</span><br><span class="line">                case (OFP_EXT_QUEUE_DELETE): &#123;</span><br><span class="line">                    return dp_ports_handle_queue_delete(dp, (struct ofl_exp_openflow_msg_queue *)msg, sender);</span><br><span class="line">                &#125;</span><br><span class="line">                case (OFP_EXT_SET_DESC): &#123;</span><br><span class="line">                    return dp_handle_set_desc(dp, (struct ofl_exp_openflow_msg_set_dp_desc *)msg, sender);</span><br><span class="line">                &#125;</span><br><span class="line">                default: &#123;</span><br><span class="line">                    VLOG_WARN_RL(LOG_MODULE, &amp;rl, &quot;Trying to handle unknown experimenter type (%u).&quot;, exp-&gt;type);</span><br><span class="line">                    return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_EXPERIMENTER);</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        default: &#123;</span><br><span class="line">            return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_EXPERIMENTER);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h2 id="交换机向控制器回复openflow消息流程"><a href="#交换机向控制器回复openflow消息流程" class="headerlink" title="交换机向控制器回复openflow消息流程"></a>交换机向控制器回复openflow消息流程</h2><p>交换机在处理控制器下发的实验消息时，经常需要对消息做出回应。比如控制器查询交换机中某个队列的状态时，交换机需要回复队列状态信息。</p>
+<p>下面举个例子来说明ofsoftswitch13中交换机的回复流程。</p>
+<h3 id="准备消息内容"><a href="#准备消息内容" class="headerlink" title="准备消息内容"></a>准备消息内容</h3><p>交换机对控制器的查询消息解析完成后，会将消息转交给对应的处理函数。比如<code>udatapath/dp_control.c</code>文件中的函数<code>handle_control_echo_request()</code>会对echo进行回复。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">/* Handles echo request messages. */</span><br><span class="line">static ofl_err</span><br><span class="line">handle_control_echo_request(struct datapath *dp,</span><br><span class="line">                                          struct ofl_msg_echo *msg,</span><br><span class="line">                                                const struct sender *sender) &#123;</span><br><span class="line">    struct ofl_msg_echo reply =</span><br><span class="line">            &#123;&#123;.type = OFPT_ECHO_REPLY&#125;,</span><br><span class="line">             .data_length = msg-&gt;data_length,</span><br><span class="line">             .data        = msg-&gt;data&#125;;</span><br><span class="line">    dp_send_message(dp, (struct ofl_msg_header *)&amp;reply, sender);</span><br><span class="line"></span><br><span class="line">    ofl_msg_free((struct ofl_msg_header *)msg, dp-&gt;exp);</span><br><span class="line">    return 0;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h3 id="调用发送函数"><a href="#调用发送函数" class="headerlink" title="调用发送函数"></a>调用发送函数</h3><p>处理函数准备好返回给交换机的信息后，调用<code>dp_send_message()</code>函数发送数据包。函数<code>dp_send_message()</code>位于文件<code>udatapath/datapath.c</code>文件中。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line">int</span><br><span class="line">dp_send_message(struct datapath *dp, struct ofl_msg_header *msg,</span><br><span class="line">                     const struct sender *sender) &#123;</span><br><span class="line">    struct ofpbuf *ofpbuf;</span><br><span class="line">    uint8_t *buf;</span><br><span class="line">    size_t buf_size;</span><br><span class="line">    int error;</span><br><span class="line">	...</span><br><span class="line">    error = ofl_msg_pack(msg, sender == NULL ? 0 : sender-&gt;xid, &amp;buf, &amp;buf_size, dp-&gt;exp);</span><br><span class="line">    if (error) &#123;</span><br><span class="line">        VLOG_WARN_RL(LOG_MODULE, &amp;rl, &quot;There was an error packing the message!&quot;);</span><br><span class="line">        return error;</span><br><span class="line">    &#125;</span><br><span class="line">    ofpbuf = ofpbuf_new(0);</span><br><span class="line">    ofpbuf_use(ofpbuf, buf, buf_size);</span><br><span class="line">    ofpbuf_put_uninit(ofpbuf, buf_size);</span><br><span class="line"></span><br><span class="line">    /* Choose the connection to send the packet to.</span><br><span class="line">       1) By default, we send it to the main connection</span><br><span class="line">       2) If there&apos;s an associated sender, send the response to the same</span><br><span class="line">          connection the request came from</span><br><span class="line">       3) If it&apos;s a packet in, use the auxiliary connection</span><br><span class="line">    */</span><br><span class="line">    ofpbuf-&gt;conn_id = MAIN_CONNECTION;</span><br><span class="line">    if (sender != NULL)</span><br><span class="line">        ofpbuf-&gt;conn_id = sender-&gt;conn_id;</span><br><span class="line">    if (msg-&gt;type == OFPT_PACKET_IN)</span><br><span class="line">        ofpbuf-&gt;conn_id = PTIN_CONNECTION;</span><br><span class="line"></span><br><span class="line">    error = send_openflow_buffer(dp, ofpbuf, sender);</span><br><span class="line">    if (error) &#123;</span><br><span class="line">        VLOG_WARN_RL(LOG_MODULE, &amp;rl, &quot;There was an error sending the message!&quot;);</span><br><span class="line">        /* TODO Zoltan: is delete needed? */</span><br><span class="line">        ofpbuf_delete(ofpbuf);</span><br><span class="line">        return error;</span><br><span class="line">    &#125;</span><br><span class="line">    return 0;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h3 id="转换传输格式-pack"><a href="#转换传输格式-pack" class="headerlink" title="转换传输格式(pack)"></a>转换传输格式(pack)</h3><p><code>dp_senf_message()</code>首先需要对传入的消息内容打包为可以直接发送openflow格式数据包，这个步骤通过调用打包函数<code>ofl_msg_pack()</code>来实现，该函数位于文件<code>oflib/ofl-messages-pack.c</code>中。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">int</span><br><span class="line">ofl_msg_pack(struct ofl_msg_header *msg, uint32_t xid, uint8_t **buf, size_t *buf_len, struct ofl_exp *exp) &#123;</span><br><span class="line">    struct ofp_header *oh;</span><br><span class="line">    int error = 0;</span><br><span class="line">    switch (msg-&gt;type) &#123;</span><br><span class="line">		...</span><br><span class="line">        case OFPT_ECHO_REQUEST:</span><br><span class="line">        case OFPT_ECHO_REPLY: &#123;</span><br><span class="line">            error = ofl_msg_pack_echo((struct ofl_msg_echo *)msg, buf, buf_len);</span><br><span class="line">            break;</span><br><span class="line">        &#125;</span><br><span class="line">        case OFPT_EXPERIMENTER: &#123;</span><br><span class="line">            if (exp == NULL || exp-&gt;msg == NULL || exp-&gt;msg-&gt;pack == NULL) &#123;</span><br><span class="line">                OFL_LOG_WARN(LOG_MODULE, &quot;Trying to pack experimenter msg, but no callback was given.&quot;);</span><br><span class="line">                error = -1;</span><br><span class="line">            &#125; else &#123;</span><br><span class="line">                error = exp-&gt;msg-&gt;pack((struct ofl_msg_experimenter *)msg, buf, buf_len);</span><br><span class="line">            &#125;</span><br><span class="line">            break;</span><br><span class="line">        &#125;</span><br><span class="line">		...</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>除实验消息外，openflow协议消息的pack函数大多位于文件<code>oflib/ofl-messages-pack.c</code>中。实验消息的处理函数统一位于<code>oflib-exp</code>目录。pack函数实现的功能都是将软件交换机中解析用到的格式转化为可以直接进行网络传输的报文格式。仍然以<code>echo</code>消息的pack为例，其实现过程如下：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">static int</span><br><span class="line">ofl_msg_pack_echo(struct ofl_msg_echo *msg, uint8_t **buf, size_t *buf_len) &#123;</span><br><span class="line">    uint8_t *data;</span><br><span class="line"></span><br><span class="line">    *buf_len = sizeof(struct ofp_header) + msg-&gt;data_length;</span><br><span class="line">    *buf     = (uint8_t *)malloc(*buf_len);</span><br><span class="line"></span><br><span class="line">    if (msg-&gt;data_length &gt; 0) &#123;</span><br><span class="line">        data = (*buf) + sizeof(struct ofp_header);</span><br><span class="line">        memcpy(data, msg-&gt;data, msg-&gt;data_length);</span><br><span class="line">    &#125;</span><br><span class="line">    return 0;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>最后在<code>dp_send_messages()</code>函数中调用<code>send_openflow_buffer(dp, ofpbuf, sender);</code>即可将消息发送给控制器了。</p>
+<h2 id="自定义exp消息的工程实现"><a href="#自定义exp消息的工程实现" class="headerlink" title="自定义exp消息的工程实现"></a>自定义exp消息的工程实现</h2><p>工程实现部分主要说明在原有的工程结构下，我们需要修改或增加的文件位置。</p>
+<h3 id="增加exp头文件"><a href="#增加exp头文件" class="headerlink" title="增加exp头文件"></a>增加exp头文件</h3><ul>
+<li><code>include/openflow/</code><br>在该目录下增加自定义消息的定义，实验消息的ID等。</li>
+</ul>
+<h3 id="增加exp消息解析函数"><a href="#增加exp消息解析函数" class="headerlink" title="增加exp消息解析函数"></a>增加exp消息解析函数</h3><ul>
+<li><p><code>oflib-exp/</code><br>在该目录下增加自定义的实验消息的处理函数，主要包括如下四个函数：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">&#123;       .pack      = ofl_exp_msg_pack,</span><br><span class="line">        .unpack    = ofl_exp_msg_unpack,</span><br><span class="line">        .free      = ofl_exp_msg_free,</span><br><span class="line">        .to_string = ofl_exp_msg_to_string</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p><code>oflib-exp/ofl-exp.c</code><br>在实验消息入口处注册自定义exp消息解析的入口</p>
+</li>
+</ul>
+<h3 id="增加exp消息处理函数"><a href="#增加exp消息处理函数" class="headerlink" title="增加exp消息处理函数"></a>增加exp消息处理函数</h3><ul>
+<li><code>udatapath/dp_exp.c</code><br>增加对自定义exp消息的处理函数，并且在<code>dp_exp_message()</code>函数中注册自定义exp消息处理的入口</li>
+</ul>
+<h3 id="修改makefile文件"><a href="#修改makefile文件" class="headerlink" title="修改makefile文件"></a>修改makefile文件</h3><ul>
+<li><p><code>include/openflow/automake.mk</code><br>在makefile对应位置包含增加的自定义exp头文件</p>
+</li>
+<li><p><code>oflib-exp/automake.mk</code><br>在makefile对应位置包含增加的自定义exp头文件</p>
+</li>
+<li><p><code>lib/automake.mk</code><br>增加对应的<code>oflib-exp</code>中的编译文件</p>
+</li>
+</ul>
+<h3 id="添加日志模块"><a href="#添加日志模块" class="headerlink" title="添加日志模块"></a>添加日志模块</h3><ul>
+<li><code>oflib-exp/vlog-module.def</code><br>增加自定义exp模块名</li>
+</ul>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Networking/" rel="tag"># Networking</a>
+          
+            <a href="/tags/ONetSwitch/" rel="tag"># ONetSwitch</a>
+          
+            <a href="/tags/SDN/" rel="tag"># SDN</a>
+          
+            <a href="/tags/softswitch13/" rel="tag"># softswitch13</a>
+          
+            <a href="/tags/Openflow/" rel="tag"># Openflow</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2016/06/25/20160626-SDN-ofsoftswitch13-source-analysis-of-packet-process/" rel="next" title="SDN软件交换机ofsoftswitch13源码解析:数据包的处理流程">
+                <i class="fa fa-chevron-left"></i> SDN软件交换机ofsoftswitch13源码解析:数据包的处理流程
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2016/07/23/20160723-linux-daemon-example/" rel="prev" title="Linux守护进程的实现">
+                Linux守护进程的实现 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/images/avatar.gif"
+               alt="Peng Zheng" />
+          <p class="site-author-name" itemprop="name">Peng Zheng</p>
+           
+              <p class="site-description motion-element" itemprop="description"></p>
+          
+        </div>
+        <nav class="site-state motion-element">
+
+          
+            <div class="site-state-item site-state-posts">
+              <a href="/archives/">
+                <span class="site-state-item-count">13</span>
+                <span class="site-state-item-name">posts</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-categories">
+              <a href="/categories/index.html">
+                <span class="site-state-item-count">7</span>
+                <span class="site-state-item-name">categories</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-tags">
+              <a href="/tags/index.html">
+                <span class="site-state-item-count">27</span>
+                <span class="site-state-item-name">tags</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://www.linkedin.com/in/zeepen/" target="_blank" title="Linkedin">
+                  
+                    <i class="fa fa-fw fa-linkedin"></i>
+                  
+                    
+                      Linkedin
+                    
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="www.zeepen.com" target="_blank" title="Site">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                    
+                      Site
+                    
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="https://scholar.google.com/citations?user=gTj0d2oAAAAJ&hl=en" target="_blank" title="Scholar">
+                  
+                    <i class="fa fa-fw fa-google"></i>
+                  
+                    
+                      Scholar
+                    
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/Lineson" target="_blank" title="GitHub">
+                  
+                    <i class="fa fa-fw fa-github"></i>
+                  
+                    
+                      GitHub
+                    
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+
+        
+        
+
+        
+
+
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#自定义exp消息的处理流程"><span class="nav-number">1.</span> <span class="nav-text">自定义exp消息的处理流程</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#exp消息处理函数的调用过程"><span class="nav-number">1.1.</span> <span class="nav-text">exp消息处理函数的调用过程</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#exp消息处理的函数指针"><span class="nav-number">1.2.</span> <span class="nav-text">exp消息处理的函数指针</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#exp消息解析实现"><span class="nav-number">1.3.</span> <span class="nav-text">exp消息解析实现</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#openflow-extention-queue-msg结构体定义"><span class="nav-number">1.3.1.</span> <span class="nav-text">openflow extention queue msg结构体定义</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#openflow-extention-queue-unpack"><span class="nav-number">1.3.2.</span> <span class="nav-text">openflow extention queue unpack</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#exp消息的处理"><span class="nav-number">1.4.</span> <span class="nav-text">exp消息的处理</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#交换机向控制器回复openflow消息流程"><span class="nav-number">2.</span> <span class="nav-text">交换机向控制器回复openflow消息流程</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#准备消息内容"><span class="nav-number">2.1.</span> <span class="nav-text">准备消息内容</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#调用发送函数"><span class="nav-number">2.2.</span> <span class="nav-text">调用发送函数</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#转换传输格式-pack"><span class="nav-number">2.3.</span> <span class="nav-text">转换传输格式(pack)</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#自定义exp消息的工程实现"><span class="nav-number">3.</span> <span class="nav-text">自定义exp消息的工程实现</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#增加exp头文件"><span class="nav-number">3.1.</span> <span class="nav-text">增加exp头文件</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#增加exp消息解析函数"><span class="nav-number">3.2.</span> <span class="nav-text">增加exp消息解析函数</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#增加exp消息处理函数"><span class="nav-number">3.3.</span> <span class="nav-text">增加exp消息处理函数</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#修改makefile文件"><span class="nav-number">3.4.</span> <span class="nav-text">修改makefile文件</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#添加日志模块"><span class="nav-number">3.5.</span> <span class="nav-text">添加日志模块</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2018</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Peng Zheng</span>
+</div>
+
+
+<div class="powered-by">
+  Powered by <a class="theme-link" href="https://hexo.io">Hexo</a>
+</div>
+
+<div class="theme-info">
+  Theme -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Pisces
+  </a>
+</div>
+
+
+        
+<div class="busuanzi-count">
+  <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+  
+    <span class="site-uv">
+      <i class="fa fa-user"></i>
+      <span class="busuanzi-value" id="busuanzi_value_site_uv"></span>
+      
+    </span>
+  
+
+  
+    <span class="site-pv">
+      <i class="fa fa-eye"></i>
+      <span class="busuanzi-value" id="busuanzi_value_site_pv"></span>
+      
+    </span>
+  
+</div>
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+          <span id="scrollpercent"><span>0</span>%</span>
+        
+      </div>
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.2"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.2"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.1.2"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.2"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.2"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.2"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.2"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+          processEscapes: true,
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+        }
+      });
+    </script>
+
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Queue(function() {
+        var all = MathJax.Hub.getAllJax(), i;
+        for (i=0; i < all.length; i += 1) {
+          all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+      });
+    </script>
+    <script type="text/javascript" src="//cdn.bootcss.com/mathjax/2.7.1/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+  
+
+
+  
+
+  
+
+</body>
+</html>
