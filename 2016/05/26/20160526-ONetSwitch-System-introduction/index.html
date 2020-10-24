@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.2" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="SDN,Networking,ONetSwitch,linux," />
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.1.2" />
+
+
+
+
+
+
+<meta name="description" content="写在前面ONetSwitch是我们实验室自主设计研发的，基于Xilinx Zynq器件的SDN交换机。ONetSwitch具有从硬件逻辑到软件控制全可编程的特点，因此这是一个非常理想的SDN科研平台。目前也确实有不少科研团队在使用，主要包括我们实验室。 正是由于ONetSwitch在软硬件方面都提供了非常灵活的可编程性，ONetSwitch交换机整套系统的使用就变得非常复杂：硬件层面的可编程性要求">
+<meta name="keywords" content="SDN,Networking,ONetSwitch,linux">
+<meta property="og:type" content="article">
+<meta property="og:title" content="ONetSwitch-软件系统介绍">
+<meta property="og:url" content="http://zeepen.com/2016/05/26/20160526-ONetSwitch-System-introduction/index.html">
+<meta property="og:site_name" content="Peng Zheng">
+<meta property="og:description" content="写在前面ONetSwitch是我们实验室自主设计研发的，基于Xilinx Zynq器件的SDN交换机。ONetSwitch具有从硬件逻辑到软件控制全可编程的特点，因此这是一个非常理想的SDN科研平台。目前也确实有不少科研团队在使用，主要包括我们实验室。 正是由于ONetSwitch在软硬件方面都提供了非常灵活的可编程性，ONetSwitch交换机整套系统的使用就变得非常复杂：硬件层面的可编程性要求">
+<meta property="og:locale" content="default">
+<meta property="og:image" content="http://zeepen.com/images/Onetswitch/onetswitch-xilinx-zynq-design-flow-linux.jpg">
+<meta property="og:image" content="http://zeepen.com/images/Onetswitch/onetswitch-start-up-file-generate-from.JPG">
+<meta property="og:updated_time" content="2017-03-12T06:59:16.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="ONetSwitch-软件系统介绍">
+<meta name="twitter:description" content="写在前面ONetSwitch是我们实验室自主设计研发的，基于Xilinx Zynq器件的SDN交换机。ONetSwitch具有从硬件逻辑到软件控制全可编程的特点，因此这是一个非常理想的SDN科研平台。目前也确实有不少科研团队在使用，主要包括我们实验室。 正是由于ONetSwitch在软硬件方面都提供了非常灵活的可编程性，ONetSwitch交换机整套系统的使用就变得非常复杂：硬件层面的可编程性要求">
+<meta name="twitter:image" content="http://zeepen.com/images/Onetswitch/onetswitch-xilinx-zynq-design-flow-linux.jpg">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    sidebar: {"position":"left","display":"hide","offset":12,"offset_float":12,"b2t":false,"scrollpercent":"ture","onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://zeepen.com/2016/05/26/20160526-ONetSwitch-System-introduction/"/>
+
+
+
+
+
+  <title>ONetSwitch-软件系统介绍 | Peng Zheng</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="default">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Peng Zheng</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">靡不有初 鲜克有终</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/about/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br />
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            Archives
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://zeepen.com/2016/05/26/20160526-ONetSwitch-System-introduction/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Peng Zheng">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/peng450.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Peng Zheng">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">ONetSwitch-软件系统介绍</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2016-05-26T10:42:55+08:00">
+                2016-05-26
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/ONetSwitch/" itemprop="url" rel="index">
+                    <span itemprop="name">ONetSwitch</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="写在前面"><a href="#写在前面" class="headerlink" title="写在前面"></a>写在前面</h2><p><a href="http://www.meshsr.com/cn/product/onetswitch" target="_blank" rel="noopener">ONetSwitch</a>是我们实验室自主设计研发的，基于Xilinx Zynq器件的SDN交换机。ONetSwitch具有从硬件逻辑到软件控制全可编程的特点，因此这是一个非常理想的SDN科研平台。目前也确实有不少科研团队在使用，主要包括我们实验室。</p>
+<p>正是由于ONetSwitch在软硬件方面都提供了非常灵活的可编程性，ONetSwitch交换机整套系统的使用就变得非常复杂：硬件层面的可编程性要求你得非常熟悉Xilinx Vivado环境下的FPGA开发，软件层面的定制需要你熟悉<a href="http://www.wiki.xilinx.com/Zynq+AP+SoC" target="_blank" rel="noopener">Xilinx Zynq AP Soc</a>平台的设计。</p>
+<p>虽然在<a href="https://github.com/MeshSr/wiki" target="_blank" rel="noopener">Github wiki</a>上有比较详细的介绍，但是对于刚刚接触ONetSwitch，又想快速进行科研实验的新手(主要是学生们)来说，这个过程还是有一定的困难。我接触ONetSwitch一年多了，主要做的是软件层面的工作，踩了很多坑，也积累了一些经验。因此我在这里写出来，分享给OnetSwitch的用户们，也给实验室的学弟们一些快速入门的资料。<br><a id="more"></a></p>
+<h2 id="OnetSwitch软件系统"><a href="#OnetSwitch软件系统" class="headerlink" title="OnetSwitch软件系统"></a>OnetSwitch软件系统</h2><p>OnetSwitch采用的是Xilinx家的Zynq芯片，那么所运行的软件自然得按照Xilinx的基本法。因此软件开发的基本流程遵循<a href="http://www.wiki.xilinx.com/Getting+Started" target="_blank" rel="noopener">Xilinx Zynq Soc的设计流程</a>, 如图1所示。</p>
+<p><img src="/images/Onetswitch/onetswitch-xilinx-zynq-design-flow-linux.jpg" width="80%" height="80%"></p>
+<center>图1 Xilinx ZYNQ设计流程</center>
+
+
+<p>OnetSwitch启动时的软件一般配置为从SD卡读取，这个SD卡相当于整个系统的硬盘。启动时必要的文件有三个：(1)boot.bin, (2)uImage, (3)devicetree.dtb。生成这三个文件的必要过程如图2所示。</p>
+<ul>
+<li><p>devicetree.dtb：设备树文件devicetree.dtb由对应的源文件devicetree.dts编译而成。源文件devicetree.dts的生成比较简单，既可以直接让SDK根据硬件工程的描述生成，其中硬件工程的描述由FPGA设计工具vivado提供。也可以直接在vivado上生成devicetree.dts文件。后续不做详细讨论。</p>
+</li>
+<li><p>uImage：uImage就是Onetswitch的嵌入式Linux内核，包括了所有的硬件驱动。</p>
+</li>
+<li><p>boot.bin：boot.bin也是由SDK生成，至少需要三个文件：fsbl.elf, U-boot和fpga_top.bit。</p>
+</li>
+</ul>
+<p><img src="/images/Onetswitch/onetswitch-start-up-file-generate-from.JPG" width="55%" height="55%"></p>
+<center>图2 Onetswitch启动文件生成关系</center>
+
+
+<h3 id="OnetSwitch-U-Boot的生成"><a href="#OnetSwitch-U-Boot的生成" class="headerlink" title="OnetSwitch U-Boot的生成"></a>OnetSwitch U-Boot的生成</h3><p>(1)首先需要修改uart值<br>找到文件u-boot-xlnx/include/configs/zynq_zc70x.h，定位到这一行：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">#define CONFIG_ZYNQ_SERIAL_UART1</span><br></pre></td></tr></table></figure></p>
+<p>将其修改为:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">#define CONFIG_ZYNQ_SERIAL_UART0。</span><br></pre></td></tr></table></figure></p>
+<p>(2)需要配置交叉编译<br>执行以下shell命令：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">export</span> CROSS_COMPILE=arm-xilinx-linux-gnueabi-</span><br><span class="line"><span class="built_in">source</span> /opt/Xilinx/SDK/2015.2/settings64.sh</span><br></pre></td></tr></table></figure></p>
+<p>(3)编译uboot<br>All commands have to be executed in you u-boot source directory.<br>The first step is to configure the sources for the intended target.To build U-Boot for OnetSwitch45(zc706) execute:<br><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">make zynq_zc706_config</span><br><span class="line"><span class="meta">#</span><span class="bash"> or use <span class="string">'make zynq_zc70x_config'</span> <span class="keyword">for</span> version &lt;= 2015.2</span></span><br><span class="line">make</span><br></pre></td></tr></table></figure></p>
+<p>After the build process complets the target u-boot elf-file is created in the top level source directory, named ‘u-boot’. Additionally in the tools/ directory the ‘mkimage’ utilty is created, which is used in other tasks to wrap images into u-boot format.<br>(4)记录mkimage工具的路径<br>To make mkimage available in other steps, it is recommended to add the tools directory to your $PATH.<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cd</span> tools</span><br><span class="line"><span class="built_in">export</span> PATH=`<span class="built_in">pwd</span>`:<span class="variable">$PATH</span> //此处<span class="built_in">pwd</span>的路径就是mkimage工具的位置，我们用PATH_to_mkimage_tools来表示`<span class="built_in">pwd</span>`执行的结果</span><br></pre></td></tr></table></figure></p>
+<p>相关参考：<a href="http://www.wiki.xilinx.com/Build+U-Boot#x-Task" target="_blank" rel="noopener">Description-U-Boot for Zynq AP SoC</a></p>
+<h3 id="OnetSwitch-Linux-kernel的生成"><a href="#OnetSwitch-Linux-kernel的生成" class="headerlink" title="OnetSwitch Linux kernel的生成"></a>OnetSwitch Linux kernel的生成</h3><p>(1)需要配置交叉编译<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">export CROSS_COMPILE=arm-xilinx-linux-gnueabi-</span><br><span class="line">source /opt/Xilinx/SDK/2015.2/settings64.sh</span><br></pre></td></tr></table></figure></p>
+<p>(2)配置mkimage工具的环境变量<br>此处需要用到编译uboot得到的PATH_to_mkimage_tools<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">export PATH=PATH_to_mkimage_tools:$PATH</span><br></pre></td></tr></table></figure></p>
+<p>(3)配置内核参数<br>The kernel is configured based on linux-xlnx/arch/arm/configs/xilinx_zynq_defconfig:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">make ARCH=arm xilinx_zynq_defconfig</span><br><span class="line">make ARCH=arm menuconfig</span><br></pre></td></tr></table></figure></p>
+<p>(4)编译内核<br>To produce the kernel image:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">make ARCH=arm UIMAGE_LOADADDR=0x8000 uImage</span><br></pre></td></tr></table></figure></p>
+<p>In the process, linux-xlnx/arch/arm/boot/Image and linux-xlnx/arch/arm/boot/zImage are created. The Image file is the uncompressed kernel image and the zImage file is a compressed kernel image which will uncompress itself when it starts.<br>If the mkimage utility is available in the build environment, linux-xlnx/arch/arm/boot/uImage will be created by wrapping zImage with a U-Boot header.<br>相关参考：<a href="http://www.wiki.xilinx.com/Build+kernel#x-Task" target="_blank" rel="noopener">Description to Linux for Zynq AP SoC</a></p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/SDN/" rel="tag"># SDN</a>
+          
+            <a href="/tags/Networking/" rel="tag"># Networking</a>
+          
+            <a href="/tags/ONetSwitch/" rel="tag"># ONetSwitch</a>
+          
+            <a href="/tags/linux/" rel="tag"># linux</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2016/05/17/20160517-HUAWEI-CodeCraft-2016-final/" rel="next" title="Huawei CodeCraft 2016 复赛解析">
+                <i class="fa fa-chevron-left"></i> Huawei CodeCraft 2016 复赛解析
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2016/05/27/20160527-SDN-CPqD-ofsoftswith13-Compile-issues/" rel="prev" title="SDN软件交换机ofsoftswith13编译问题">
+                SDN软件交换机ofsoftswith13编译问题 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/images/peng450.png"
+               alt="Peng Zheng" />
+          <p class="site-author-name" itemprop="name">Peng Zheng</p>
+           
+              <p class="site-description motion-element" itemprop="description">PhD student in Networking and System</p>
+          
+        </div>
+        <nav class="site-state motion-element">
+
+          
+            <div class="site-state-item site-state-posts">
+              <a href="/archives/">
+                <span class="site-state-item-count">10</span>
+                <span class="site-state-item-name">posts</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-categories">
+              <a href="/categories/index.html">
+                <span class="site-state-item-count">3</span>
+                <span class="site-state-item-name">categories</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-tags">
+              <a href="/tags/index.html">
+                <span class="site-state-item-count">18</span>
+                <span class="site-state-item-name">tags</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://www.linkedin.com/in/zeepen/" target="_blank" title="Linkedin">
+                  
+                    <i class="fa fa-fw fa-linkedin"></i>
+                  
+                    
+                      Linkedin
+                    
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="https://scholar.google.com/citations?user=gTj0d2oAAAAJ&hl=en" target="_blank" title="Scholar">
+                  
+                    <i class="fa fa-fw fa-google"></i>
+                  
+                    
+                      Scholar
+                    
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/Lineson" target="_blank" title="GitHub">
+                  
+                    <i class="fa fa-fw fa-github"></i>
+                  
+                    
+                      GitHub
+                    
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+
+        
+        
+
+        
+
+
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#写在前面"><span class="nav-number">1.</span> <span class="nav-text">写在前面</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#OnetSwitch软件系统"><span class="nav-number">2.</span> <span class="nav-text">OnetSwitch软件系统</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#OnetSwitch-U-Boot的生成"><span class="nav-number">2.1.</span> <span class="nav-text">OnetSwitch U-Boot的生成</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#OnetSwitch-Linux-kernel的生成"><span class="nav-number">2.2.</span> <span class="nav-text">OnetSwitch Linux kernel的生成</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy;  2015 - 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Peng Zheng</span>
+</div>
+
+
+<div class="powered-by">
+  Powered by <a class="theme-link" href="https://hexo.io">Hexo</a>
+</div>
+
+<div class="theme-info">
+  Theme -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Mist
+  </a>
+</div>
+
+
+        
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+          <span id="scrollpercent"><span>0</span>%</span>
+        
+      </div>
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.2"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.2"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.2"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.2"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.2"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+          processEscapes: true,
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+        }
+      });
+    </script>
+
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Queue(function() {
+        var all = MathJax.Hub.getAllJax(), i;
+        for (i=0; i < all.length; i += 1) {
+          all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+      });
+    </script>
+    <script type="text/javascript" src="//cdn.bootcss.com/mathjax/2.7.1/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+  
+
+
+  
+
+  
+
+</body>
+</html>

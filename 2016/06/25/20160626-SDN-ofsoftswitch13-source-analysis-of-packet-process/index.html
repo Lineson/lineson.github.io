@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.2" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="SDN,Networking,C,ONetSwitch,openflow," />
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.1.2" />
+
+
+
+
+
+
+<meta name="description" content="总体介绍ofsoftswitch13是支持Openflow1.3的开源SDN软件交换机，由爱立信公司的CPqD团队开发。工程以Stanford大学开发的openflow1.0软件交换机为基础，主要新增了对Openflow1.3协议的支持。 ofsoftswitch13是一款由C语言实现的轻量级的SDN软件交换机，代码总量在5-10万行之间。在功能上比较完整的对Openflow1.3协议进行了实现，">
+<meta name="keywords" content="SDN,Networking,C,ONetSwitch,openflow">
+<meta property="og:type" content="article">
+<meta property="og:title" content="SDN软件交换机ofsoftswitch13源码解析:数据包的处理流程">
+<meta property="og:url" content="http://zeepen.com/2016/06/25/20160626-SDN-ofsoftswitch13-source-analysis-of-packet-process/index.html">
+<meta property="og:site_name" content="Peng Zheng">
+<meta property="og:description" content="总体介绍ofsoftswitch13是支持Openflow1.3的开源SDN软件交换机，由爱立信公司的CPqD团队开发。工程以Stanford大学开发的openflow1.0软件交换机为基础，主要新增了对Openflow1.3协议的支持。 ofsoftswitch13是一款由C语言实现的轻量级的SDN软件交换机，代码总量在5-10万行之间。在功能上比较完整的对Openflow1.3协议进行了实现，">
+<meta property="og:locale" content="default">
+<meta property="og:updated_time" content="2017-03-12T06:59:16.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="SDN软件交换机ofsoftswitch13源码解析:数据包的处理流程">
+<meta name="twitter:description" content="总体介绍ofsoftswitch13是支持Openflow1.3的开源SDN软件交换机，由爱立信公司的CPqD团队开发。工程以Stanford大学开发的openflow1.0软件交换机为基础，主要新增了对Openflow1.3协议的支持。 ofsoftswitch13是一款由C语言实现的轻量级的SDN软件交换机，代码总量在5-10万行之间。在功能上比较完整的对Openflow1.3协议进行了实现，">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    sidebar: {"position":"left","display":"hide","offset":12,"offset_float":12,"b2t":false,"scrollpercent":"ture","onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://zeepen.com/2016/06/25/20160626-SDN-ofsoftswitch13-source-analysis-of-packet-process/"/>
+
+
+
+
+
+  <title>SDN软件交换机ofsoftswitch13源码解析:数据包的处理流程 | Peng Zheng</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="default">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Peng Zheng</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">靡不有初 鲜克有终</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/about/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br />
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            Archives
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://zeepen.com/2016/06/25/20160626-SDN-ofsoftswitch13-source-analysis-of-packet-process/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Peng Zheng">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/peng450.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Peng Zheng">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">SDN软件交换机ofsoftswitch13源码解析:数据包的处理流程</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2016-06-25T15:35:31+08:00">
+                2016-06-25
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/ONetSwitch/" itemprop="url" rel="index">
+                    <span itemprop="name">ONetSwitch</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="总体介绍"><a href="#总体介绍" class="headerlink" title="总体介绍"></a>总体介绍</h2><p><code>ofsoftswitch13</code>是支持Openflow1.3的<a href="https://github.com/CPqD/ofsoftswitch13" target="_blank" rel="noopener">开源SDN软件交换机</a>，由爱立信公司的CPqD团队开发。工程以Stanford大学开发的openflow1.0软件交换机为基础，主要新增了对Openflow1.3协议的支持。</p>
+<p><code>ofsoftswitch13</code>是一款由C语言实现的轻量级的SDN软件交换机，代码总量在<code>5-10</code>万行之间。在功能上比较完整的对Openflow1.3协议进行了实现， 最重要的两个部分是udatapath和secchan。其中udatapath是交换机中数据包的处理通道，secchan负责交换机与控制器的连接。</p>
+<p>本文主要对udatapath部分的内容进行解析，具体来说将从三个方面展开：一是交换机udatapath中的核心结构，二是交换机对来自控制平面消息的接收和处理流量；三是交换机对来自数据平面的数据包的处理流程。</p>
+<a id="more"></a>
+<p><strong>本文目录如下：</strong><br><!-- toc --></p>
+<h2 id="核心数据结构"><a href="#核心数据结构" class="headerlink" title="核心数据结构"></a>核心数据结构</h2><h3 id="基础结构"><a href="#基础结构" class="headerlink" title="基础结构"></a>基础结构</h3><h4 id="Struct-datapath"><a href="#Struct-datapath" class="headerlink" title="Struct datapath"></a>Struct datapath</h4><p>软件交换机中最基本，也是最重要的数据结构。一个<code>datapath</code>就相当于一台Openflow交换机实体，记录着着交换机的描述信息、端口数量、流表结构、组表结构、与远程控制器的连接信息等。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">datapath</span> &#123;</span></span><br><span class="line">    <span class="comment">/* Strings to describe the manufacturer, hardware, and software. This data</span></span><br><span class="line"><span class="comment">     * is queriable through switch stats request. */</span></span><br><span class="line">    <span class="keyword">char</span>  *mfr_desc;</span><br><span class="line">    <span class="keyword">char</span>  *hw_desc;</span><br><span class="line">    <span class="keyword">char</span>  *sw_desc;</span><br><span class="line">    <span class="keyword">char</span>  *dp_desc;</span><br><span class="line">    <span class="keyword">char</span>  *serial_num;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">uint64_t</span>  id;               <span class="comment">/* Unique identifier for this datapath. */</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">list</span> <span class="title">remotes</span>;</span>        <span class="comment">/* Remote connections. */</span></span><br><span class="line">    <span class="keyword">uint64_t</span> generation_id;     <span class="comment">/* Identifies a given mastership view */</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Listeners. */</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">pvconn</span> **<span class="title">listeners</span>;</span></span><br><span class="line">    <span class="keyword">size_t</span> n_listeners;</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">pvconn</span> **<span class="title">listeners_aux</span>;</span></span><br><span class="line">    <span class="keyword">size_t</span> n_listeners_aux;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">time_t</span> last_timeout;</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">dp_buffers</span> *<span class="title">buffers</span>;</span></span><br><span class="line">    </span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">pipeline</span> *<span class="title">pipeline</span>;</span>  <span class="comment">/* Pipeline with multi-tables. */</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">group_table</span> *<span class="title">groups</span>;</span> <span class="comment">/* Group tables */</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">meter_table</span> *<span class="title">meters</span>;</span> <span class="comment">/* Meter tables */</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">ofl_config</span> <span class="title">config</span>;</span> <span class="comment">/* Configuration, set from controller. */</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Switch ports. */</span></span><br><span class="line">    <span class="comment">/* <span class="doctag">NOTE:</span> ports are numbered starting at 1 in OF 1.1 */</span></span><br><span class="line">    <span class="keyword">uint32_t</span>         max_queues; <span class="comment">/* used when creating ports */</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">sw_port</span>   <span class="title">ports</span>[<span class="title">DP_MAX_PORTS</span> + 1];</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">sw_port</span>  *<span class="title">local_port</span>;</span>  <span class="comment">/* OFPP_LOCAL port, if any. */</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">list</span>      <span class="title">port_list</span>;</span> <span class="comment">/* All ports, including local_port. */</span></span><br><span class="line">    <span class="keyword">size_t</span>           ports_num;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Experimenter handling. */</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">ofl_exp</span>  *<span class="title">exp</span>;</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">if</span> defined(OF_HW_PLAT)</span></span><br><span class="line">    <span class="comment">/* Although the chain maintains the pointer to the HW driver</span></span><br><span class="line"><span class="comment">     * for flow operations, the datapath needs the port functions</span></span><br><span class="line"><span class="comment">     * in the driver structure</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">of_hw_driver_t</span> *hw_drv;</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">hw_pkt_q_entry</span> *<span class="title">hw_pkt_list_head</span>, *<span class="title">hw_pkt_list_tail</span>;</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>补充一句，与datapath有关的模块包括：</p>
+<ul>
+<li>dp_ports</li>
+<li>flow entry， flow table</li>
+<li>group entry， group table</li>
+<li>meter table</li>
+</ul>
+<h4 id="Struct-ofpbuf"><a href="#Struct-ofpbuf" class="headerlink" title="Struct ofpbuf"></a>Struct ofpbuf</h4><p><code>ofpbuf</code>用于表示从入端口收到的数据包在交换机中存储的结构，位于<code>lib</code>目录。这是数据包在进入交换机datapath之后的初始形态。<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* Buffer for holding arbitrary data.  An ofpbuf is automatically reallocated</span></span><br><span class="line"><span class="comment"> * as necessary if it grows too large for the available memory. */</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">ofpbuf</span> &#123;</span></span><br><span class="line">    <span class="keyword">void</span> *base;                 <span class="comment">/* First byte of area malloc()'d area. */</span></span><br><span class="line">    <span class="keyword">size_t</span> allocated;           <span class="comment">/* Number of bytes allocated. */</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">uint8_t</span> conn_id;            <span class="comment">/* Connection ID. Application-defined value to </span></span><br><span class="line"><span class="comment">                                   associate a connection to the buffer. */</span></span><br><span class="line">    <span class="keyword">void</span> *data;                 <span class="comment">/* First byte actually in use. */</span></span><br><span class="line">    <span class="keyword">size_t</span> size;                <span class="comment">/* Number of bytes in use. */</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">void</span> *l2;                   <span class="comment">/* Link-level header. */</span></span><br><span class="line">    <span class="keyword">void</span> *l3;                   <span class="comment">/* Network-level header. */</span></span><br><span class="line">    <span class="keyword">void</span> *l4;                   <span class="comment">/* Transport-level header. */</span></span><br><span class="line">    <span class="keyword">void</span> *l7;                   <span class="comment">/* Application data. */</span></span><br><span class="line"></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">ofpbuf</span> *<span class="title">next</span>;</span>        <span class="comment">/* Next in a list of ofpbufs. */</span></span><br><span class="line">    <span class="keyword">void</span> *private_p;            <span class="comment">/* Private pointer for use by owner. */</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure></p>
+<h3 id="控制平面"><a href="#控制平面" class="headerlink" title="控制平面"></a>控制平面</h3><h4 id="Struct-sender"><a href="#Struct-sender" class="headerlink" title="Struct sender"></a>Struct sender</h4><p>结构体sender用来表示交换机中与控制器进行的一次会话，相当于一次连接的标识，交换机可以通过sender直接对控制器发过来的消息进行回应。定义于文件<code>udatapath/daatapath.h</code>中。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">/* The origin of a received OpenFlow message, to enable sending a reply. */</span><br><span class="line">struct sender &#123;</span><br><span class="line">    struct remote *remote;      /* The device that sent the message. */</span><br><span class="line">    uint8_t conn_id;            /* The connection that sent the message */</span><br><span class="line">    uint32_t xid;               /* The OpenFlow transaction ID. */</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure></p>
+<h4 id="Struct-remote"><a href="#Struct-remote" class="headerlink" title="Struct remote"></a>Struct remote</h4><p>结构remote表示与安全通道的一个连接，即交换机与控制器的一个连接。定义于文件<code>udatapath/daatapath.h</code>中。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line">/* A connection to a secure channel. */</span><br><span class="line">struct remote &#123;</span><br><span class="line">    struct list node;</span><br><span class="line">    struct rconn *rconn;</span><br><span class="line">    struct rconn *rconn_aux;</span><br><span class="line">    </span><br><span class="line">#define TXQ_LIMIT 128           /* Max number of packets to queue for tx. */</span><br><span class="line">    int n_txq;                  /* Number of packets queued for tx on rconn. */</span><br><span class="line"></span><br><span class="line">    /* Support for reliable, multi-message replies to requests.</span><br><span class="line">     *</span><br><span class="line">     * If an incoming request needs to have a reliable reply that might</span><br><span class="line">     * require multiple messages, it can use remote_start_dump() to set up</span><br><span class="line">     * a callback that will be called as buffer space for replies. */</span><br><span class="line">    int (*cb_dump)(struct datapath *, void *aux);</span><br><span class="line">    void (*cb_done)(void *aux);</span><br><span class="line">    void *cb_aux;</span><br><span class="line"></span><br><span class="line">    uint32_t role; /*OpenFlow controller role.*/</span><br><span class="line">    struct ofl_async_config config;  /* Asynchronous messages configuration, </span><br><span class="line">                                            set from controller*/</span><br><span class="line"></span><br><span class="line">    /* Multipart request message pending reassembly. */</span><br><span class="line">    struct ofl_msg_multipart_request_header *mp_req_msg; /* Message. */</span><br><span class="line">    uint32_t mp_req_xid;     /* Multipart request OpenFlow transaction ID. */</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<h4 id="Struct-rconn"><a href="#Struct-rconn" class="headerlink" title="Struct rconn"></a>Struct rconn</h4><p>结构体rconn表示控制器与交换机之间的一次可靠连接，定义于文件<code>lib/rconn.c</code>文件中。来自源码注释中的解释是: A wrapper around vconn that provides queuing and optionally reliability. An rconn maintains a message transmission queue of bounded length specified by the caller.  The rconn does not guarantee reliable delivery of queued messages: all queued messages are dropped when reconnection becomes necessary. An rconn optionally provides reliable communication, in this sense: the rconn will re-connect, with exponential backoff, when the underlying vconn disconnects.<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br></pre></td><td class="code"><pre><span class="line">/* A reliable connection to an OpenFlow switch or controller.</span><br><span class="line"> *</span><br><span class="line"> * See the large comment in rconn.h for more information. */</span><br><span class="line">struct rconn &#123;</span><br><span class="line">    enum state state;</span><br><span class="line">    time_t state_entered;</span><br><span class="line"></span><br><span class="line">    struct vconn *vconn;</span><br><span class="line">    char *name;</span><br><span class="line">    bool reliable;</span><br><span class="line"></span><br><span class="line">    struct ofp_queue txq;</span><br><span class="line"></span><br><span class="line">    int backoff;</span><br><span class="line">    int max_backoff;</span><br><span class="line">    time_t backoff_deadline;</span><br><span class="line">    time_t last_received;</span><br><span class="line">    time_t last_connected;</span><br><span class="line">    unsigned int packets_sent;</span><br><span class="line">    unsigned int seqno;</span><br><span class="line"></span><br><span class="line">    /* In S_ACTIVE and S_IDLE, probably_admitted reports whether we believe</span><br><span class="line">     * that the peer has made a (positive) admission control decision on our</span><br><span class="line">     * connection.  If we have not yet been (probably) admitted, then the</span><br><span class="line">     * connection does not reset the timer used for deciding whether the switch</span><br><span class="line">     * should go into fail-open mode.</span><br><span class="line">     *</span><br><span class="line">     * last_admitted reports the last time we believe such a positive admission</span><br><span class="line">     * control decision was made. */</span><br><span class="line">    bool probably_admitted;</span><br><span class="line">    time_t last_admitted;</span><br><span class="line"></span><br><span class="line">    /* These values are simply for statistics reporting, not used directly by</span><br><span class="line">     * anything internal to the rconn (or the secchan for that matter). */</span><br><span class="line">    unsigned int packets_received;</span><br><span class="line">    unsigned int n_attempted_connections, n_successful_connections;</span><br><span class="line">    time_t creation_time;</span><br><span class="line">    unsigned long int total_time_connected;</span><br><span class="line"></span><br><span class="line">    /* If we can&apos;t connect to the peer, it could be for any number of reasons.</span><br><span class="line">     * Usually, one would assume it is because the peer is not running or</span><br><span class="line">     * because the network is partitioned.  But it could also be because the</span><br><span class="line">     * network topology has changed, in which case the upper layer will need to</span><br><span class="line">     * reassess it (in particular, obtain a new IP address via DHCP and find</span><br><span class="line">     * the new location of the controller).  We set this flag when we suspect</span><br><span class="line">     * that this could be the case. */</span><br><span class="line">    bool questionable_connectivity;</span><br><span class="line">    time_t last_questioned;</span><br><span class="line"></span><br><span class="line">    /* Throughout this file, &quot;probe&quot; is shorthand for &quot;inactivity probe&quot;.</span><br><span class="line">     * When nothing has been received from the peer for a while, we send out</span><br><span class="line">     * an echo request as an inactivity probe packet.  We should receive back</span><br><span class="line">     * a response. */</span><br><span class="line">    int probe_interval;         /* Secs of inactivity before sending probe. */</span><br><span class="line"></span><br><span class="line">    /* Messages sent or received are copied to the monitor connections. */</span><br><span class="line">#define MAX_MONITORS 8</span><br><span class="line">    struct vconn *monitors[8];</span><br><span class="line">    size_t n_monitors;</span><br><span class="line"></span><br><span class="line">    /* Protocol statistical informaition. */</span><br><span class="line">    /* TODO Zoltan: Temporarily removed when moving to OpenFlow 1.1 */</span><br><span class="line">    /*</span><br><span class="line">    struct ofpstat ofps_rcvd;</span><br><span class="line">    struct ofpstat ofps_sent;</span><br><span class="line">    */</span><br><span class="line"></span><br><span class="line">    uint32_t idle_echo_xid;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure></p>
+<h4 id="Struct-vconn"><a href="#Struct-vconn" class="headerlink" title="Struct vconn"></a>Struct vconn</h4><p>定义于文件<code>lib/vconn-provider.h</code>中。Active virtual connection to an OpenFlow device. This structure should be treated as opaque by vconn implementations.<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">struct vconn &#123;</span><br><span class="line">    struct vconn_class *class;</span><br><span class="line">    int state;</span><br><span class="line">    int error;</span><br><span class="line">    int min_version;</span><br><span class="line">    int version;</span><br><span class="line">    uint32_t ip;</span><br><span class="line">    char *name;</span><br><span class="line">    bool reconnectable;</span><br><span class="line">    struct ofpstat ofps_rcvd;</span><br><span class="line">    struct ofpstat ofps_sent;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure></p>
+<h4 id="Struct-pvconn"><a href="#Struct-pvconn" class="headerlink" title="Struct pvconn"></a>Struct pvconn</h4><p>定义于文件<code>lib/vconn-provider.h</code>中。Passive virtual connection to an OpenFlow device.  This structure should be treated as opaque by vconn implementations.<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">struct pvconn &#123;</span><br><span class="line">    struct pvconn_class *class;</span><br><span class="line">    char *name;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure></p>
+<h3 id="数据平面"><a href="#数据平面" class="headerlink" title="数据平面"></a>数据平面</h3><h4 id="Struct-packet"><a href="#Struct-packet" class="headerlink" title="Struct packet"></a>Struct packet</h4><p>来自数据平面的网络数据包在软件交换机中的结构，以及相关的处理状态。定义于<code>udatapath/packet.h</code>文件中。<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">packet</span> &#123;</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">datapath</span>    *<span class="title">dp</span>;</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">ofpbuf</span>      *<span class="title">buffer</span>;</span>    <span class="comment">/* buffer containing the packet */</span></span><br><span class="line">    <span class="keyword">uint32_t</span>            in_port;</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">action_set</span>  *<span class="title">action_set</span>;</span> <span class="comment">/* action set associated with the packet */</span></span><br><span class="line">    <span class="keyword">bool</span>                packet_out; <span class="comment">/* true if the packet arrived in a packet out msg */</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">uint32_t</span>            out_group; <span class="comment">/* OFPG_ANY = no out group */</span></span><br><span class="line">    <span class="keyword">uint32_t</span>            out_port;  <span class="comment">/* OFPP_ANY = no out port */</span></span><br><span class="line">    <span class="keyword">uint16_t</span>            out_port_max_len;  <span class="comment">/* max length to send, if out_port is OFPP_CONTROLLER */</span></span><br><span class="line">    <span class="keyword">uint32_t</span>            out_queue;</span><br><span class="line">    <span class="keyword">uint8_t</span>             table_id; <span class="comment">/* table in which is processed */</span></span><br><span class="line">    <span class="keyword">uint32_t</span>            buffer_id; <span class="comment">/* if packet is stored in buffer, buffer_id;</span></span><br><span class="line"><span class="comment">                                      otherwise 0xffffffff */</span></span><br><span class="line"></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">packet_handle_std</span>  *<span class="title">handle_std</span>;</span> <span class="comment">/* handler for standard match structure */</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure></p>
+<h4 id="Struct-pipeline"><a href="#Struct-pipeline" class="headerlink" title="Struct pipeline"></a>Struct pipeline</h4><p><code>pipeline</code>结构是交换机中对数据包处理的流水线，实现数据包与流表的匹配操作，并根据匹配流表项的指令对数据包进相应的操作。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">/* A pipeline structure */</span><br><span class="line">struct pipeline &#123;</span><br><span class="line">    struct datapath    *dp;</span><br><span class="line">    struct flow_table  *tables[PIPELINE_TABLES];</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure></p>
+<h2 id="OFS控制平面消息的处理流程"><a href="#OFS控制平面消息的处理流程" class="headerlink" title="OFS控制平面消息的处理流程"></a>OFS控制平面消息的处理流程</h2><h3 id="1-建立datapath"><a href="#1-建立datapath" class="headerlink" title="(1)建立datapath"></a>(1)建立datapath</h3><p>文件<code>udatapath/udatapath.c</code>是交换机中处理Openflow消息的入口文件，主要负责根据用户输出的命令创建相应的datapath，创建主要代码入下所示：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">static struct datapath *dp;</span><br><span class="line">int udatapath_cmd(int argc, char *argv[]) &#123;</span><br><span class="line">    ...</span><br><span class="line">    dp = dp_new();  /*创建datapath*/</span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h3 id="2-监听openflow信道"><a href="#2-监听openflow信道" class="headerlink" title="(2)监听openflow信道"></a>(2)监听openflow信道</h3><p>接下来开始监听openflow信道，代码如下所示。其中，函数<code>pvconn_open()</code>实现对参数指定的openlow连接开始监听，其参数<code>pvconn</code>是被动虚拟连接的名字，格式为<code>&quot;TYPE:ARGS&quot;</code>，参数的值一般为<code>ptcp:6632</code>。 如果监听连接成功，则调用函数<code>dp_add_pvconn()</code>将该被动虚拟连接加入到datapath的监听列表中。<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">udatapath_cmd</span><span class="params">(<span class="keyword">int</span> argc, <span class="keyword">char</span> *argv[])</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    ...</span><br><span class="line">    <span class="keyword">const</span> <span class="keyword">char</span> *pvconn_name = argv[i];</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">pvconn</span> *<span class="title">pvconn</span>, *<span class="title">pvconn_aux</span> = <span class="title">NULL</span>;</span></span><br><span class="line">    ...</span><br><span class="line">    <span class="comment">/* Attempts to start listening for OpenFlow connections.  'name' is a</span></span><br><span class="line"><span class="comment">     * connection name in the form "TYPE:ARGS", where TYPE is an passive vconn</span></span><br><span class="line"><span class="comment">     * class's name and ARGS are vconn class-specific.*/</span></span><br><span class="line">    retval = pvconn_open(pvconn_name, &amp;pvconn);</span><br><span class="line">    ...</span><br><span class="line">    dp_add_pvconn(dp, pvconn, pvconn_aux);</span><br><span class="line">    ...</span><br><span class="line">)</span><br></pre></td></tr></table></figure></p>
+<p><code>datapath</code>建立与控制器的连接后，主函数会将创建好datapath交给循环调用的<code>dp_run()</code>函数来处理与该datapath有关的消息。<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span> (;;) &#123;</span><br><span class="line">    dp_run(dp);</span><br><span class="line">    dp_wait(dp);</span><br><span class="line">    poll_block();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h3 id="3-接收openflow消息"><a href="#3-接收openflow消息" class="headerlink" title="(3)接收openflow消息"></a>(3)接收openflow消息</h3><p>函数<code>dp_run()</code>在文件<code>udatapath/datapath.c</code>中实现。具体的，函数<code>dp_run()</code>调用<strong><code>remote_run()</code></strong>来接收到达交换机的openflow控制消息，对应代码如下：<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">dp_run</span><span class="params">(struct datapath *dp)</span> </span>&#123;</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">remote</span> *<span class="title">r</span>, *<span class="title">rn</span>;</span></span><br><span class="line">    ...</span><br><span class="line">    dp_ports_run(dp);</span><br><span class="line">    <span class="comment">/* Talk to remotes. */</span></span><br><span class="line">    LIST_FOR_EACH_SAFE (r, rn, struct remote, node, &amp;dp-&gt;remotes) &#123;</span><br><span class="line">        remote_run(dp, r);</span><br><span class="line">    &#125;</span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>函数<code>remote_run()</code>会判断连接的类型，并通过调用<code>remote_rconn_run()</code>来接收消息。因此函数<code>remote_rconn_run()</code>是openflow消息接收的直接控制者，位于<code>udatapath/datapath.c</code>文件中：<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> <span class="keyword">void</span></span><br><span class="line">remote_run(struct datapath *dp, struct remote *r)</span><br><span class="line">&#123;</span><br><span class="line">    remote_rconn_run(dp, r, MAIN_CONNECTION);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (!rconn_is_alive(r-&gt;rconn)) &#123;</span><br><span class="line">        remote_destroy(r);</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (r-&gt;rconn_aux == <span class="literal">NULL</span> || !rconn_is_alive(r-&gt;rconn_aux))</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line"></span><br><span class="line">    remote_rconn_run(dp, r, PTIN_CONNECTION);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">static</span> <span class="keyword">void</span> </span><br><span class="line">remote_rconn_run(struct datapath *dp, struct remote *r, <span class="keyword">uint8_t</span> conn_id) &#123;</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">rconn</span> *<span class="title">rconn</span> = <span class="title">NULL</span>;</span></span><br><span class="line">    rconn_run(rconn);</span><br><span class="line">    ...</span><br><span class="line">    <span class="keyword">for</span> (i = <span class="number">0</span>; i &lt; <span class="number">50</span>; i++) &#123;</span><br><span class="line">    </span><br><span class="line">        <span class="class"><span class="keyword">struct</span> <span class="title">ofpbuf</span> *<span class="title">buffer</span>;</span></span><br><span class="line">        buffer = rconn_recv(rconn);</span><br><span class="line">        <span class="class"><span class="keyword">struct</span> <span class="title">ofl_msg_header</span> *<span class="title">msg</span>;</span></span><br><span class="line">        <span class="class"><span class="keyword">struct</span> <span class="title">sender</span> <span class="title">sender</span> = &#123;</span>.remote = r, .conn_id = conn_id&#125;;</span><br><span class="line">        error = ofl_msg_unpack(buffer-&gt;data, buffer-&gt;size, &amp;msg, &amp;(sender.xid), dp-&gt;<span class="built_in">exp</span>);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (!error) &#123;</span><br><span class="line">            error = handle_control_msg(dp, msg, &amp;sender);</span><br><span class="line">            <span class="keyword">if</span> (error)  ofl_msg_free(msg, dp-&gt;<span class="built_in">exp</span>);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (error) &#123;</span><br><span class="line">            <span class="class"><span class="keyword">struct</span> <span class="title">ofl_msg_error</span> <span class="title">err</span> =</span></span><br><span class="line"><span class="class">                    &#123;</span>&#123;.type = OFPT_ERROR&#125;,</span><br><span class="line">                     .type = ofl_error_type(error),</span><br><span class="line">                     .code = ofl_error_code(error),</span><br><span class="line">                     .data_length = buffer-&gt;size,</span><br><span class="line">                     .data        = buffer-&gt;data&#125;;</span><br><span class="line">            dp_send_message(dp, (struct ofl_msg_header *)&amp;err, &amp;sender);</span><br><span class="line">        &#125;</span><br><span class="line">        ofpbuf_delete(buffer);</span><br><span class="line">        ...</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>函数中没次调用尝试接收消息数设置为50，这是为了防止占用过多CPU资源，其他进程不会饿死。收到一个正常的数据包buffer后，就会由openflow消息解析函数<code>ofl_msg_unpack()</code>对数据包内容进行解析。</p>
+<h3 id="4-解析openflow消息"><a href="#4-解析openflow消息" class="headerlink" title="(4)解析openflow消息"></a>(4)解析openflow消息</h3><p>对数据包内容进行解析的函数<code>ofl_msg_unpack()</code>定义于文件<code>oflib/ofl-messages-unpack.c</code>中。函数<code>ofl_msg_unpack()</code>首先会解析出openflow消息的类型，然后根据不同的类型调用相关解析函数，主要代码如下所示(仅列出了部分消息类型)：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br></pre></td><td class="code"><pre><span class="line">ofl_err</span><br><span class="line">ofl_msg_unpack(uint8_t *buf, size_t buf_len, struct ofl_msg_header **msg, uint32_t *xid, struct ofl_exp *exp) &#123;</span><br><span class="line">    </span><br><span class="line">    struct ofp_header *oh;</span><br><span class="line">    oh = (struct ofp_header *)buf;</span><br><span class="line"></span><br><span class="line">    switch (oh-&gt;type) &#123;</span><br><span class="line">        case OFPT_HELLO:</span><br><span class="line">            error = ofl_msg_unpack_empty(oh, &amp;len, msg);</span><br><span class="line">            break;</span><br><span class="line">        ...</span><br><span class="line">        case OFPT_EXPERIMENTER:</span><br><span class="line">            if (exp == NULL || exp-&gt;msg == NULL || exp-&gt;msg-&gt;unpack == NULL) &#123;</span><br><span class="line">                OFL_LOG_WARN(LOG_MODULE, &quot;Received EXPERIMENTER message, but no callback was given.&quot;);</span><br><span class="line">                error = ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_EXPERIMENTER);</span><br><span class="line">            &#125; else &#123;</span><br><span class="line">                error = exp-&gt;msg-&gt;unpack(oh, &amp;len, (struct ofl_msg_experimenter **)msg);</span><br><span class="line">            &#125;</span><br><span class="line">            break;</span><br><span class="line"></span><br><span class="line">        /* Switch configuration messages. */</span><br><span class="line">        case OFPT_FEATURES_REQUEST:</span><br><span class="line">            error = ofl_msg_unpack_empty(oh, &amp;len, msg);</span><br><span class="line">            break;</span><br><span class="line"></span><br><span class="line">        /* Asynchronous messages. */</span><br><span class="line">        case OFPT_PACKET_IN:</span><br><span class="line">            error = ofl_msg_unpack_packet_in(oh,buf, &amp;len, msg);</span><br><span class="line">            break;</span><br><span class="line"></span><br><span class="line">       /* Controller command messages. */</span><br><span class="line">        case OFPT_GET_ASYNC_REQUEST:</span><br><span class="line">            error = ofl_msg_unpack_empty(oh, &amp;len, msg);</span><br><span class="line">            break;       </span><br><span class="line"></span><br><span class="line">        case OFPT_PACKET_OUT:</span><br><span class="line">            error = ofl_msg_unpack_packet_out(oh, &amp;len, msg, exp);</span><br><span class="line">            break;</span><br><span class="line">        case OFPT_FLOW_MOD:</span><br><span class="line">            error = ofl_msg_unpack_flow_mod(oh,buf, &amp;len, msg, exp);</span><br><span class="line">            break;</span><br><span class="line">        ...</span><br><span class="line">        /* Statistics messages. */</span><br><span class="line">        case OFPT_MULTIPART_REQUEST:</span><br><span class="line">            error = ofl_msg_unpack_multipart_request(oh,buf, &amp;len, msg, exp);</span><br><span class="line">            break;</span><br><span class="line">        case OFPT_MULTIPART_REPLY:</span><br><span class="line">            error = ofl_msg_unpack_multipart_reply(oh,buf, &amp;len, msg, exp);</span><br><span class="line">            break;</span><br><span class="line"></span><br><span class="line">        /* Barrier messages. */</span><br><span class="line">        case OFPT_BARRIER_REQUEST:</span><br><span class="line">        case OFPT_BARRIER_REPLY:</span><br><span class="line">            error = ofl_msg_unpack_empty(oh, &amp;len, msg);</span><br><span class="line">            break;</span><br><span class="line">        </span><br><span class="line">        /* Role messages. */</span><br><span class="line">        case OFPT_ROLE_REQUEST:</span><br><span class="line">        case OFPT_ROLE_REPLY:</span><br><span class="line">            error = ofl_msg_unpack_role_request(oh, &amp;len, msg);</span><br><span class="line">            break;</span><br><span class="line"></span><br><span class="line">        /* Queue Configuration messages. */</span><br><span class="line">        case OFPT_QUEUE_GET_CONFIG_REQUEST:</span><br><span class="line">            error = ofl_msg_unpack_queue_get_config_request(oh, &amp;len, msg);</span><br><span class="line">            break;</span><br><span class="line">        case OFPT_QUEUE_GET_CONFIG_REPLY:</span><br><span class="line">            error = ofl_msg_unpack_queue_get_config_reply(oh, &amp;len, msg);</span><br><span class="line">            break;</span><br><span class="line">        case OFPT_METER_MOD:</span><br><span class="line">            error = ofl_msg_unpack_meter_mod(oh, &amp;len, msg);</span><br><span class="line">            break;         </span><br><span class="line">        default: &#123;</span><br><span class="line">            error = ofl_error(OFPET_BAD_REQUEST, OFPGMFC_BAD_TYPE);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>从<code>ofl_msg_unpack()</code>函数对openflow子类型消息解析函数的调用中，我们可以发现experimenter消息的处理是最特殊的。openflow协议中已经定义好的消息均与<code>ofl_msg_unpack()</code>处于同一个模块<code>ofl_msg_u</code>中，而<code>experimenter</code>消息内容可以由厂商自定义，因此为了保持了对<code>experimenter</code>消息良好的可扩展性，工程中通过函数指针的方式实现类似于C++中多台的功能。这给我们实现自定义的消息类型提供了非常方便的接口。关于实验消息的实现我会在另一篇中详细讲解。</p>
+<h3 id="5-处理openflow消息"><a href="#5-处理openflow消息" class="headerlink" title="(5)处理openflow消息"></a>(5)处理openflow消息</h3><p><code>remote_rconn_run</code>调用消息解析函数之后，如果解析无误，则继续调用<code>handle_control_msg()</code>函数对消息内容进行处理。与<code>ofl_msg_unpack()</code>类似，函数<code>handle_control_msg()</code>定义于文件<code>udtapath/dp_control.c</code>中，会根据消息的不同类型分配给不同的处理函数，主要代码入下。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br></pre></td><td class="code"><pre><span class="line">/* Dispatches control messages to appropriate handler functions. */</span><br><span class="line">ofl_err</span><br><span class="line">handle_control_msg(struct datapath *dp, struct ofl_msg_header *msg,</span><br><span class="line">                   const struct sender *sender) &#123;</span><br><span class="line"></span><br><span class="line">    if (VLOG_IS_DBG_ENABLED(LOG_MODULE)) &#123;</span><br><span class="line">        char *msg_str = ofl_msg_to_string(msg, dp-&gt;exp);</span><br><span class="line">        VLOG_DBG_RL(LOG_MODULE, &amp;rl, &quot;received control msg: %.400s&quot;, msg_str);</span><br><span class="line">        free(msg_str);</span><br><span class="line">    &#125;</span><br><span class="line">    switch (msg-&gt;type) &#123;</span><br><span class="line">        case OFPT_HELLO: &#123;</span><br><span class="line">            ofl_msg_free(msg, dp-&gt;exp);</span><br><span class="line">            return 0;</span><br><span class="line">        &#125;</span><br><span class="line">        case OFPT_ERROR: &#123;</span><br><span class="line">            return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);</span><br><span class="line">        &#125;</span><br><span class="line">        case OFPT_BARRIER_REQUEST: &#123;</span><br><span class="line">            return handle_control_barrier_request(dp, msg, sender);</span><br><span class="line">        &#125;</span><br><span class="line">        case OFPT_BARRIER_REPLY: &#123;</span><br><span class="line">            ofl_msg_free(msg, dp-&gt;exp);</span><br><span class="line">            return 0;</span><br><span class="line">        &#125;</span><br><span class="line">        case OFPT_FEATURES_REQUEST: &#123;</span><br><span class="line">            return handle_control_features_request(dp, msg, sender);</span><br><span class="line">        &#125;</span><br><span class="line">        case OFPT_FEATURES_REPLY: &#123;</span><br><span class="line">            return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);</span><br><span class="line">        &#125;</span><br><span class="line">        case OFPT_GET_CONFIG_REQUEST: &#123;</span><br><span class="line">            return handle_control_get_config_request(dp, msg, sender);</span><br><span class="line">        &#125;</span><br><span class="line">        case OFPT_GET_CONFIG_REPLY: &#123;</span><br><span class="line">            return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);</span><br><span class="line">        &#125;</span><br><span class="line">        case OFPT_SET_CONFIG: &#123;</span><br><span class="line">            return handle_control_set_config(dp, (struct ofl_msg_set_config *)msg, sender);</span><br><span class="line">        &#125;</span><br><span class="line">        case OFPT_PACKET_IN: &#123;</span><br><span class="line">            return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);</span><br><span class="line">        &#125;</span><br><span class="line">        case OFPT_PACKET_OUT: &#123;</span><br><span class="line">            return handle_control_packet_out(dp, (struct ofl_msg_packet_out *)msg, sender);</span><br><span class="line">            break;</span><br><span class="line">        &#125;</span><br><span class="line">        case OFPT_FLOW_REMOVED: &#123;</span><br><span class="line">            return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);</span><br><span class="line">        &#125;</span><br><span class="line">        case OFPT_PORT_STATUS: &#123;</span><br><span class="line">            return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);</span><br><span class="line">        &#125;</span><br><span class="line">        case OFPT_FLOW_MOD: &#123;</span><br><span class="line">            return pipeline_handle_flow_mod(dp-&gt;pipeline, (struct ofl_msg_flow_mod *)msg, sender);</span><br><span class="line">        &#125;</span><br><span class="line">        case OFPT_GROUP_MOD: &#123;</span><br><span class="line">            return group_table_handle_group_mod(dp-&gt;groups, (struct ofl_msg_group_mod *)msg, sender);</span><br><span class="line">        &#125;</span><br><span class="line">        case OFPT_PORT_MOD: &#123;</span><br><span class="line">            return dp_ports_handle_port_mod(dp, (struct ofl_msg_port_mod *)msg, sender);</span><br><span class="line">        &#125;</span><br><span class="line">        case OFPT_TABLE_MOD: &#123;</span><br><span class="line">            return pipeline_handle_table_mod(dp-&gt;pipeline, (struct ofl_msg_table_mod *)msg, sender);</span><br><span class="line">        &#125;</span><br><span class="line">        case OFPT_MULTIPART_REQUEST: &#123;</span><br><span class="line">            return handle_control_stats_request(dp, (struct ofl_msg_multipart_request_header *)msg, sender);</span><br><span class="line">        &#125;</span><br><span class="line">        case OFPT_MULTIPART_REPLY: &#123;</span><br><span class="line">            return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);</span><br><span class="line">        &#125;</span><br><span class="line">        case OFPT_ECHO_REQUEST: &#123;</span><br><span class="line">            return handle_control_echo_request(dp, (struct ofl_msg_echo *)msg, sender);</span><br><span class="line">        &#125;</span><br><span class="line">        case OFPT_ECHO_REPLY: &#123;</span><br><span class="line">            return handle_control_echo_reply(dp, (struct ofl_msg_echo *)msg, sender);</span><br><span class="line">        &#125;</span><br><span class="line">        case OFPT_QUEUE_GET_CONFIG_REQUEST: &#123;</span><br><span class="line">            return dp_ports_handle_queue_get_config_request(dp, (struct ofl_msg_queue_get_config_request *)msg, sender);</span><br><span class="line">        &#125;</span><br><span class="line">        case OFPT_ROLE_REQUEST: &#123;</span><br><span class="line">            return dp_handle_role_request(dp, (struct ofl_msg_role_request*)msg, sender);</span><br><span class="line">        &#125;</span><br><span class="line">        case OFPT_ROLE_REPLY:&#123;</span><br><span class="line">            return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);</span><br><span class="line">        &#125;</span><br><span class="line">        case OFPT_QUEUE_GET_CONFIG_REPLY: &#123;</span><br><span class="line">            return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);</span><br><span class="line">        &#125;</span><br><span class="line">        case OFPT_METER_MOD:&#123;</span><br><span class="line">            return meter_table_handle_meter_mod(dp-&gt;meters, (struct ofl_msg_meter_mod *)msg, sender);</span><br><span class="line">        &#125;</span><br><span class="line">        case OFPT_EXPERIMENTER: &#123;</span><br><span class="line">            return dp_exp_message(dp, (struct ofl_msg_experimenter *)msg, sender);</span><br><span class="line">        &#125;</span><br><span class="line">        case OFPT_GET_ASYNC_REPLY:&#123;</span><br><span class="line">            return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);</span><br><span class="line">        &#125;</span><br><span class="line">        case OFPT_GET_ASYNC_REQUEST:</span><br><span class="line">        case OFPT_SET_ASYNC:&#123;</span><br><span class="line">            return dp_handle_async_request(dp, (struct ofl_msg_async_config*)msg, sender);</span><br><span class="line">        &#125;</span><br><span class="line">        default: &#123;</span><br><span class="line">            return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>其中需要注意的问题是代码内存块的管理问题：It is assumed that if a handler returns with error, it did not use any part of the control message, thus it can be freed up.  If no error is returned however, the message must be freed inside the handler (because the handler might keep parts of the message).</p>
+<h2 id="OFS数据平面消息的处理流程"><a href="#OFS数据平面消息的处理流程" class="headerlink" title="OFS数据平面消息的处理流程"></a>OFS数据平面消息的处理流程</h2><h3 id="1-建立datapath-1"><a href="#1-建立datapath-1" class="headerlink" title="(1)建立datapath"></a>(1)建立datapath</h3><p>文件<code>udatapath/udatapath.c</code>也是交换机中对数据包转发处理的入口文件。根据用户输出的命令创建相应的datapath之后，主函数会将创建好datapath交给循环调用的<code>dp_run()</code>函数来处理通过该datapath的数据包。具体的，函数<code>dp_run()</code>调用<strong><code>dp_ports_run()</code></strong>来接收到达datapath的数据平面数据包。</p>
+<h3 id="2-接收数据包"><a href="#2-接收数据包" class="headerlink" title="(2)接收数据包"></a>(2)接收数据包</h3><p>函数<code>dp_ports_run()</code>位于dp_ports模块中，用于从交换机入端口接收数据包并交给pipeline处理，关键代码入下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">static struct ofpbuf *buffer = NULL;</span><br><span class="line">int error;</span><br><span class="line"></span><br><span class="line">buffer = ofpbuf_new_with_headroom(VLAN_ETH_HEADER_LEN + max_mtu, headroom);</span><br><span class="line">error = netdev_recv(p-&gt;netdev, buffer, VLAN_ETH_HEADER_LEN + max_mtu);</span><br><span class="line"></span><br><span class="line">p-&gt;stats-&gt;rx_packets++;</span><br><span class="line">p-&gt;stats-&gt;rx_bytes += buffer-&gt;size;</span><br><span class="line"></span><br><span class="line">// process_buffer takes ownership of ofpbuf buffer</span><br><span class="line">process_buffer(dp, p, buffer);</span><br></pre></td></tr></table></figure>
+<p>到此，交换机完成了数据包的接收，数据包已经从网卡设备复制到内存buffer中。然后对接收端口的状态进行检查，如果端口是<code>up</code>的，该数据包的所有权就交给pipeline函数<code>pipeline_process_packet()</code>来处理。</p>
+<h3 id="3-pipeline处理数据包"><a href="#3-pipeline处理数据包" class="headerlink" title="(3)pipeline处理数据包"></a>(3)pipeline处理数据包</h3><p>函数<code>pipeline_process_packet()</code>会取得数据包的所有权，并且负责在处理完数据包之后释放内存资源。piprline模块的的实现见<code>udatapath/pipeline.c</code>文件。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></td><td class="code"><pre><span class="line">void</span><br><span class="line">pipeline_process_packet(struct pipeline *pl, struct packet *pkt) &#123;</span><br><span class="line">    struct flow_table *table, *next_table;</span><br><span class="line">    ...</span><br><span class="line">    next_table = pl-&gt;tables[0];</span><br><span class="line">    while (next_table != NULL) &#123;</span><br><span class="line">        struct flow_entry *entry;</span><br><span class="line"></span><br><span class="line">        VLOG_DBG_RL(LOG_MODULE, &amp;rl, &quot;trying table %u.&quot;, next_table-&gt;stats-&gt;table_id);</span><br><span class="line"></span><br><span class="line">        pkt-&gt;table_id = next_table-&gt;stats-&gt;table_id;</span><br><span class="line">        table         = next_table;</span><br><span class="line">        next_table    = NULL;</span><br><span class="line"></span><br><span class="line">        entry = flow_table_lookup(table, pkt);</span><br><span class="line">        if (entry != NULL) &#123;</span><br><span class="line">            if (VLOG_IS_DBG_ENABLED(LOG_MODULE)) &#123;</span><br><span class="line">                char *m = ofl_structs_flow_stats_to_string(entry-&gt;stats, pkt-&gt;dp-&gt;exp);</span><br><span class="line">                VLOG_DBG_RL(LOG_MODULE, &amp;rl, &quot;found matching entry: %s.&quot;, m);</span><br><span class="line">                free(m);</span><br><span class="line">            &#125;</span><br><span class="line">            pkt-&gt;handle_std-&gt;table_miss = is_table_miss(entry);</span><br><span class="line">            execute_entry(pl, entry, &amp;next_table, &amp;pkt);</span><br><span class="line">            /* Packet could be destroyed by a meter instruction */</span><br><span class="line">            if (!pkt)</span><br><span class="line">                return;</span><br><span class="line"></span><br><span class="line">            if (next_table == NULL) &#123;</span><br><span class="line">               /* Cookie field is set 0xffffffffffffffff</span><br><span class="line">                because we cannot associate it to any</span><br><span class="line">                particular flow */</span><br><span class="line">                action_set_execute(pkt-&gt;action_set, pkt, 0xffffffffffffffff);</span><br><span class="line">                return;</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">        &#125; else &#123;</span><br><span class="line">            /* OpenFlow 1.3 default behavior on a table miss */</span><br><span class="line">            VLOG_DBG_RL(LOG_MODULE, &amp;rl, &quot;No matching entry found. Dropping packet.&quot;);</span><br><span class="line">            packet_destroy(pkt);</span><br><span class="line">            return;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    VLOG_WARN_RL(LOG_MODULE, &amp;rl, &quot;Reached outside of pipeline processing cycle.&quot;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如果交换机中有多级流表，数据包会依次匹配。若匹配成功，则执行流表项的指令<code>action_set_execute(pkt-&gt;action_set, pkt..)</code>。</p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/SDN/" rel="tag"># SDN</a>
+          
+            <a href="/tags/Networking/" rel="tag"># Networking</a>
+          
+            <a href="/tags/C/" rel="tag"># C</a>
+          
+            <a href="/tags/ONetSwitch/" rel="tag"># ONetSwitch</a>
+          
+            <a href="/tags/openflow/" rel="tag"># openflow</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2016/06/05/20160605-moors-voting-algorithm/" rel="next" title="Major Element">
+                <i class="fa fa-chevron-left"></i> Major Element
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2016/06/30/20160630-SDN-ofsoftswitch13-how-to-implement-custom-openflow-experimenter-messages-communication/" rel="prev" title="在SDN软件交换机ofsoftswitch13中实现自定义experimenter消息">
+                在SDN软件交换机ofsoftswitch13中实现自定义experimenter消息 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/images/peng450.png"
+               alt="Peng Zheng" />
+          <p class="site-author-name" itemprop="name">Peng Zheng</p>
+           
+              <p class="site-description motion-element" itemprop="description">PhD student in Networking and System</p>
+          
+        </div>
+        <nav class="site-state motion-element">
+
+          
+            <div class="site-state-item site-state-posts">
+              <a href="/archives/">
+                <span class="site-state-item-count">10</span>
+                <span class="site-state-item-name">posts</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-categories">
+              <a href="/categories/index.html">
+                <span class="site-state-item-count">3</span>
+                <span class="site-state-item-name">categories</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-tags">
+              <a href="/tags/index.html">
+                <span class="site-state-item-count">18</span>
+                <span class="site-state-item-name">tags</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://www.linkedin.com/in/zeepen/" target="_blank" title="Linkedin">
+                  
+                    <i class="fa fa-fw fa-linkedin"></i>
+                  
+                    
+                      Linkedin
+                    
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="https://scholar.google.com/citations?user=gTj0d2oAAAAJ&hl=en" target="_blank" title="Scholar">
+                  
+                    <i class="fa fa-fw fa-google"></i>
+                  
+                    
+                      Scholar
+                    
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/Lineson" target="_blank" title="GitHub">
+                  
+                    <i class="fa fa-fw fa-github"></i>
+                  
+                    
+                      GitHub
+                    
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+
+        
+        
+
+        
+
+
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#总体介绍"><span class="nav-number">1.</span> <span class="nav-text">总体介绍</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#核心数据结构"><span class="nav-number">2.</span> <span class="nav-text">核心数据结构</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#基础结构"><span class="nav-number">2.1.</span> <span class="nav-text">基础结构</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#Struct-datapath"><span class="nav-number">2.1.1.</span> <span class="nav-text">Struct datapath</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Struct-ofpbuf"><span class="nav-number">2.1.2.</span> <span class="nav-text">Struct ofpbuf</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#控制平面"><span class="nav-number">2.2.</span> <span class="nav-text">控制平面</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#Struct-sender"><span class="nav-number">2.2.1.</span> <span class="nav-text">Struct sender</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Struct-remote"><span class="nav-number">2.2.2.</span> <span class="nav-text">Struct remote</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Struct-rconn"><span class="nav-number">2.2.3.</span> <span class="nav-text">Struct rconn</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Struct-vconn"><span class="nav-number">2.2.4.</span> <span class="nav-text">Struct vconn</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Struct-pvconn"><span class="nav-number">2.2.5.</span> <span class="nav-text">Struct pvconn</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#数据平面"><span class="nav-number">2.3.</span> <span class="nav-text">数据平面</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#Struct-packet"><span class="nav-number">2.3.1.</span> <span class="nav-text">Struct packet</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Struct-pipeline"><span class="nav-number">2.3.2.</span> <span class="nav-text">Struct pipeline</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#OFS控制平面消息的处理流程"><span class="nav-number">3.</span> <span class="nav-text">OFS控制平面消息的处理流程</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-建立datapath"><span class="nav-number">3.1.</span> <span class="nav-text">(1)建立datapath</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-监听openflow信道"><span class="nav-number">3.2.</span> <span class="nav-text">(2)监听openflow信道</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-接收openflow消息"><span class="nav-number">3.3.</span> <span class="nav-text">(3)接收openflow消息</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-解析openflow消息"><span class="nav-number">3.4.</span> <span class="nav-text">(4)解析openflow消息</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-处理openflow消息"><span class="nav-number">3.5.</span> <span class="nav-text">(5)处理openflow消息</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#OFS数据平面消息的处理流程"><span class="nav-number">4.</span> <span class="nav-text">OFS数据平面消息的处理流程</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-建立datapath-1"><span class="nav-number">4.1.</span> <span class="nav-text">(1)建立datapath</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-接收数据包"><span class="nav-number">4.2.</span> <span class="nav-text">(2)接收数据包</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-pipeline处理数据包"><span class="nav-number">4.3.</span> <span class="nav-text">(3)pipeline处理数据包</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy;  2015 - 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Peng Zheng</span>
+</div>
+
+
+<div class="powered-by">
+  Powered by <a class="theme-link" href="https://hexo.io">Hexo</a>
+</div>
+
+<div class="theme-info">
+  Theme -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Mist
+  </a>
+</div>
+
+
+        
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+          <span id="scrollpercent"><span>0</span>%</span>
+        
+      </div>
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.2"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.2"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.2"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.2"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.2"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+          processEscapes: true,
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+        }
+      });
+    </script>
+
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Queue(function() {
+        var all = MathJax.Hub.getAllJax(), i;
+        for (i=0; i < all.length; i += 1) {
+          all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+      });
+    </script>
+    <script type="text/javascript" src="//cdn.bootcss.com/mathjax/2.7.1/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+  
+
+
+  
+
+  
+
+</body>
+</html>
